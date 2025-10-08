@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { sendPasswordResetEmail } from '@/lib/email';
+import crypto from 'crypto';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { email } = await request.json();
+
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+
+    // Check if user exists and is active
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, full_name, status')
+      .eq('email', email.toLowerCase().trim())
+      .eq('status', 'active')
+      .single();
+
+    if (error || !user) {
+      // Return error for non-existent email
+      return NextResponse.json({
+        success: false,
+        error: 'No account found with this email address'
+      }, { status: 404 });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Store reset token in database
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        reset_token: resetToken,
+        reset_token_expiry: resetTokenExpiry.toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating reset token:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to generate reset token' },
+        { status: 500 }
+      );
+    }
+
+    // Generate reset URL
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
+    
+    // Send password reset email
+    const emailResult = await sendPasswordResetEmail(user.email, user.full_name, resetUrl);
+    
+    if (!emailResult.success) {
+      console.error('Failed to send password reset email:', emailResult.error);
+      // Still return success to user for security (don't reveal if email failed)
+    } else {
+      console.log('✅ Password reset email sent successfully to:', user.email);
+    }
+
+    // In development, also log the reset token for testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔑 Development - Reset token:', resetToken);
+      console.log('🔗 Development - Reset URL:', resetUrl);
+      console.log('⏰ Development - Expires at:', resetTokenExpiry);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'If an account with that email exists, we have sent a password reset link.',
+      // Only include in development
+      ...(process.env.NODE_ENV === 'development' && {
+        resetUrl,
+        resetToken,
+        expiresAt: resetTokenExpiry
+      })
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
