@@ -4,12 +4,6 @@
 -- Clear existing data (in correct order to avoid foreign key constraints)
 -- Only delete if tables exist
 DO $$ BEGIN
-    DELETE FROM user_permissions;
-EXCEPTION
-    WHEN undefined_table THEN null;
-END $$;
-
-DO $$ BEGIN
     DELETE FROM role_permissions;
 EXCEPTION
     WHEN undefined_table THEN null;
@@ -119,14 +113,6 @@ INSERT INTO users (id, email, password_hash, full_name, role_id, status, created
 ('770e8400-e29b-41d4-a716-446655440010', 'inactive@trucker.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/9yKjK2K', 'Inactive User', '550e8400-e29b-41d4-a716-446655440003', 'inactive', NOW(), NOW(), false, '+1-555-0110');
 
 
--- Insert some user-specific permissions (overrides)
-INSERT INTO user_permissions (user_id, permission, granted, created_at) VALUES
--- Give Mike PM additional inventory delete permission
-('770e8400-e29b-41d4-a716-446655440003', 'inventory.delete', true, NOW()),
--- Give Alice warehouse additional project create permission
-('770e8400-e29b-41d4-a716-446655440006', 'projects.create', true, NOW()),
--- Revoke reports view from David (client viewer)
-('770e8400-e29b-41d4-a716-446655440009', 'reports.view', false, NOW());
 
 -- Update last login times for some users
 UPDATE users SET last_login = NOW() - INTERVAL '2 hours' WHERE email = 'admin@trucker.com';
@@ -147,12 +133,7 @@ UNION ALL
 SELECT 
     'Role Permissions' as table_name, 
     COUNT(*) as count 
-FROM role_permissions
-UNION ALL
-SELECT 
-    'User Permissions' as table_name, 
-    COUNT(*) as count 
-FROM user_permissions;
+FROM role_permissions;
 
 -- Display login credentials for testing
 SELECT 
