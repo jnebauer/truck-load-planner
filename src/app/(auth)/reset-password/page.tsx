@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useResetPassword } from '@/hooks/auth';
+import { resetPasswordSchema, ResetPasswordFormData } from '@/lib/validations';
+import { TOAST_MESSAGES } from '@/constants';
 import { Eye, EyeOff, Truck, Package, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -19,13 +21,26 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const { loading, verifying, verifyResetToken, resetPassword } = useResetPassword();
 
+  // Initialize react-hook-form with Zod validation
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
   useEffect(() => {
     // Get token from URL
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
     
     if (!tokenParam) {
-      setError('Invalid reset link. Please request a new password reset.');
+      setError(TOAST_MESSAGES.ERROR.NOT_FOUND);
       return;
     }
 
@@ -35,7 +50,7 @@ export default function ResetPasswordPage() {
     const verifyToken = async () => {
       const { error, valid, email } = await verifyResetToken(tokenParam);
       if (error || !valid) {
-        setError(error?.message || 'Invalid or expired reset token');
+        setError(error?.message || TOAST_MESSAGES.ERROR.UNAUTHORIZED);
       } else {
         setUserEmail(email || '');
       }
@@ -44,24 +59,11 @@ export default function ResetPasswordPage() {
     verifyToken();
   }, [verifyResetToken]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: ResetPasswordFormData) => {
     setError('');
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    // Validate password strength
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
     try {
-      const { error } = await resetPassword({ token, password });
+      const { error } = await resetPassword({ token, password: data.password });
       if (error) {
         setError(error.message);
       } else {
@@ -71,7 +73,7 @@ export default function ResetPasswordPage() {
         }, 3000);
       }
     } catch {
-      setError('An error occurred while resetting password');
+      setError(TOAST_MESSAGES.ERROR.SERVER_ERROR);
     }
   };
 
@@ -172,7 +174,7 @@ export default function ResetPasswordPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 New Password
@@ -180,13 +182,12 @@ export default function ResetPasswordPage() {
               <div className="mt-1 relative">
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                  {...register('password')}
+                  className={`appearance-none block w-full px-3 py-2 border text-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10 ${
+                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your new password"
                 />
                 <span
@@ -200,6 +201,9 @@ export default function ResetPasswordPage() {
                   )}
                 </span>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
             </div>
 
             <div>
@@ -209,13 +213,12 @@ export default function ResetPasswordPage() {
               <div className="mt-1 relative">
                 <input
                   id="confirmPassword"
-                  name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                  {...register('confirmPassword')}
+                  className={`appearance-none block w-full px-3 py-2 border text-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10 ${
+                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   placeholder="Confirm your new password"
                 />
                 <span
@@ -229,6 +232,9 @@ export default function ResetPasswordPage() {
                   )}
                 </span>
               </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             {error && (

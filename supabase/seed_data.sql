@@ -32,84 +32,9 @@ INSERT INTO roles (id, name, description, is_active, created_at, updated_at) VAL
 ('550e8400-e29b-41d4-a716-446655440003', 'warehouse', 'Warehouse staff with inventory management access', true, NOW(), NOW()),
 ('550e8400-e29b-41d4-a716-446655440004', 'client_viewer', 'Client viewer with read-only access to assigned clients', true, NOW(), NOW());
 
--- Insert Role Permissions
-INSERT INTO role_permissions (role_id, permission, created_at) VALUES
--- Admin permissions (all permissions)
-('550e8400-e29b-41d4-a716-446655440001', 'users.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'users.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'users.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'users.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'clients.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'clients.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'clients.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'clients.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'inventory.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'inventory.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'inventory.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'inventory.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'projects.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'projects.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'projects.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'projects.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'load_plans.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'load_plans.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'load_plans.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'load_plans.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'reports.generate', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'reports.view', NOW()),
--- Admin navigation permissions
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.dashboard', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.inventory', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.truck_planner', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.reports', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.import', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.clients', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.user_management', NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'navigation.settings', NOW()),
-
--- Project Manager permissions
-('550e8400-e29b-41d4-a716-446655440002', 'clients.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'inventory.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'inventory.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'projects.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'projects.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'projects.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'projects.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'load_plans.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'load_plans.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'load_plans.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'load_plans.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'reports.generate', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'reports.view', NOW()),
--- PM navigation permissions
-('550e8400-e29b-41d4-a716-446655440002', 'navigation.dashboard', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'navigation.inventory', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'navigation.truck_planner', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'navigation.reports', NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'navigation.clients', NOW()),
-
--- Warehouse permissions
-('550e8400-e29b-41d4-a716-446655440003', 'clients.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'inventory.create', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'inventory.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'inventory.update', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'inventory.delete', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'projects.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'reports.view', NOW()),
--- Warehouse navigation permissions
-('550e8400-e29b-41d4-a716-446655440003', 'navigation.dashboard', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'navigation.inventory', NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'navigation.truck_planner', NOW()),
-
--- Client Viewer permissions
-('550e8400-e29b-41d4-a716-446655440004', 'clients.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'inventory.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'projects.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'reports.view', NOW()),
--- Client Viewer navigation permissions
-('550e8400-e29b-41d4-a716-446655440004', 'navigation.dashboard', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'navigation.clients', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'navigation.reports', NOW());
+-- Note: Role permissions are now managed through the UI
+-- The role_permissions table uses TEXT field instead of enum
+-- This allows for flexible permission management without database migrations
 
 
 -- Insert Users (with hashed passwords)
@@ -151,12 +76,7 @@ UNION ALL
 SELECT 
     'Users' as table_name, 
     COUNT(*) as count 
-FROM users
-UNION ALL
-SELECT 
-    'Role Permissions' as table_name, 
-    COUNT(*) as count 
-FROM role_permissions;
+FROM users;
 
 -- Display login credentials for testing
 SELECT 

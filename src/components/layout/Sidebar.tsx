@@ -4,13 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { getFilteredNavigation, getActionPermissions } from '@/lib/navigation';
-import { 
-  User,
-  ChevronDown,
-  ChevronRight,
-  LogOut
-} from 'lucide-react';
+import { getFilteredNavigation } from '@/lib/navigation';
+import { User, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   user: {
@@ -24,8 +19,27 @@ export default function Sidebar({ user }: SidebarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const { signOut, hasPermission } = useAuth();
 
+  // Debug: Check what permissions user has
+  console.log('🔍 Sidebar Debug - User:', user);
+  console.log('🔍 Sidebar Debug - hasPermission("navigation.dashboard"):', hasPermission('navigation.dashboard'));
+  console.log('🔍 Sidebar Debug - hasPermission("navigation.inventory"):', hasPermission('navigation.inventory'));
+
   // Get filtered navigation items based on user permissions
   const navigationItems = getFilteredNavigation(hasPermission);
+  
+  console.log('🔍 Sidebar Debug - Filtered navigation items:', navigationItems.map(item => item.name));
+  
+  // Force remove Dashboard if user doesn't have navigation.dashboard permission
+  const filteredItems = navigationItems.filter(item => {
+    if (item.id === 'dashboard') {
+      const hasDashboardPermission = hasPermission('navigation.dashboard');
+      console.log('🔍 Dashboard permission check:', hasDashboardPermission);
+      return hasDashboardPermission;
+    }
+    return true;
+  });
+  
+  console.log('🔍 Final filtered items:', filteredItems.map(item => item.name));
 
   const isActive = (href: string) => pathname.startsWith(href);
 
@@ -44,49 +58,68 @@ export default function Sidebar({ user }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        {navigationItems.map((item) => {
+        {filteredItems.map((item) => {
           const Icon = item.icon;
           const active = item.href ? isActive(item.href) : false;
           const isOpen = openMenu === item.name && item.submenu;
-          const actionPermissions = getActionPermissions(hasPermission, item);
 
           return (
             <div key={item.id}>
-              <button
-                onClick={() =>
-                  toggleSubmenu(item.submenu ? item.name : undefined)
-                }
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
-                  active
-                    ? 'bg-gray-100 text-gray-900 border-r-2 border-blue-500'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <div className="flex items-center">
+              {item.href && !item.submenu ? (
+                // Direct link for items without submenu
+                <Link
+                  href={''}
+                  className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                    active
+                      ? 'bg-gray-100 text-gray-900 border-r-2 border-blue-500'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
                   <Icon
                     className={`mr-3 h-5 w-5 ${
-                      active ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'
+                      active
+                        ? 'text-gray-900'
+                        : 'text-gray-500 group-hover:text-gray-700'
                     }`}
                   />
                   {item.name}
-                  {/* Show action indicators */}
-                  
-                </div>
-                {item.submenu && (
-                  isOpen ? (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                  )
-                )}
-              </button>
+                </Link>
+              ) : (
+                // Button for items with submenu or no href
+                <button
+                  onClick={() =>
+                    toggleSubmenu(item.submenu ? item.name : undefined)
+                  }
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                    active
+                      ? 'bg-gray-100 text-gray-900 border-r-2 border-blue-500'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <Icon
+                      className={`mr-3 h-5 w-5 ${
+                        active
+                          ? 'text-gray-900'
+                          : 'text-gray-500 group-hover:text-gray-700'
+                      }`}
+                    />
+                    {item.name}
+                  </div>
+                  {item.submenu &&
+                    (isOpen ? (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                    ))}
+                </button>
+              )}
 
               {/* Submenu */}
               {item.submenu && isOpen && (
                 <div className="ml-10 mt-1 space-y-1">
                   {item.submenu.map((sub) => {
                     const SubIcon = sub.icon;
-                    const subActionPermissions = getActionPermissions(hasPermission, sub);
                     return (
                       <Link
                         key={sub.id}
@@ -99,18 +132,6 @@ export default function Sidebar({ user }: SidebarProps) {
                       >
                         <SubIcon className="mr-2 h-4 w-4" />
                         {sub.name}
-                        {/* Show submenu action indicators */}
-                        <div className="ml-2 flex space-x-1">
-                          {subActionPermissions.create && (
-                            <span className="text-xs bg-green-100 text-green-600 px-1 rounded" title="Can Create">+</span>
-                          )}
-                          {subActionPermissions.edit && (
-                            <span className="text-xs bg-blue-100 text-blue-600 px-1 rounded" title="Can Edit">✎</span>
-                          )}
-                          {subActionPermissions.delete && (
-                            <span className="text-xs bg-red-100 text-red-600 px-1 rounded" title="Can Delete">×</span>
-                          )}
-                        </div>
                       </Link>
                     );
                   })}

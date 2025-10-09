@@ -1,23 +1,24 @@
 import { z } from 'zod';
+import { VALIDATION_MESSAGES } from '@/constants';
 
 // Login form validation schema
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID),
   password: z
     .string()
-    .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(6, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH),
 });
 
 // Forgot password form validation schema
 export const forgotPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID),
 });
 
 // Reset password form validation schema
@@ -40,16 +41,39 @@ export const resetPasswordSchema = z.object({
 export const userSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID),
+  password: z
+    .string()
+    .optional(),
   fullName: z
     .string()
-    .min(1, 'Full name is required')
-    .min(2, 'Full name must be at least 2 characters'),
-  role: z.enum(['admin', 'pm', 'warehouse', 'client_viewer']).refine((val) => val !== undefined, {
-    message: 'Please select a role',
-  }),
-  status: z.enum(['active', 'inactive']).optional(),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
+  phone: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+  role: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.ROLE_REQUIRED),
+  status: z.enum(['active', 'inactive', 'pending']).optional().default('active'),
+});
+
+// User create validation schema (password required)
+export const userCreateSchema = userSchema.extend({
+  password: z
+    .string()
+    .min(6, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH),
+});
+
+// User update validation schema (password optional)
+export const userUpdateSchema = userSchema.extend({
+  password: z
+    .string()
+    .min(6, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH)
+    .optional(),
 });
 
 // Client form validation schema
@@ -78,4 +102,6 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type UserFormData = z.infer<typeof userSchema>;
+export type UserCreateFormData = z.infer<typeof userCreateSchema>;
+export type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
 export type ClientFormData = z.infer<typeof clientSchema>;

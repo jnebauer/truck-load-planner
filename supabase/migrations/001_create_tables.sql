@@ -11,20 +11,8 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- Create permissions enum (if not exists)
-DO $$ BEGIN
-    CREATE TYPE permission_type AS ENUM (
-        'users.create', 'users.read', 'users.update', 'users.delete',
-        'clients.create', 'clients.read', 'clients.update', 'clients.delete',
-        'roles.create', 'roles.read', 'roles.update', 'roles.delete',
-        'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
-        'projects.create', 'projects.read', 'projects.update', 'projects.delete',
-        'load_plans.create', 'load_plans.read', 'load_plans.update', 'load_plans.delete',
-        'reports.generate', 'reports.view'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+-- Note: We're using TEXT field for permissions instead of enum for flexibility
+-- This allows adding new permissions without database migrations
 
 -- Create roles table first (users table references it)
 CREATE TABLE IF NOT EXISTS roles (
@@ -58,8 +46,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS role_permissions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    permission permission_type NOT NULL,
+    permission TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(role_id, permission)
 );
 

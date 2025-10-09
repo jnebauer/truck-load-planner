@@ -254,7 +254,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               )}
@@ -323,8 +323,8 @@ export default function DataTable<T extends Record<string, unknown>>({
                       </td>
                     ))}
                     {actions.length > 0 && (
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex items-center justify-center space-x-2">
                           {actions.map((action, actionIndex) => {
                             const isDisabled = action.disabled?.(row);
                             return (

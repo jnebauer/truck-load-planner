@@ -143,6 +143,122 @@ ${EMAIL_TRANSLATIONS.PASSWORD_RESET.NO_REPLY_MESSAGE}
   `;
 }
 
+// Send user creation email
+export async function sendUserCreatedEmail(
+  to: string,
+  fullName: string | null,
+  email: string,
+  password: string,
+  role: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    
+    if (!fromEmail) {
+      throw new Error('SMTP_FROM email not configured');
+    }
+
+    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`;
+
+    const mailOptions = {
+      from: `"${EMAIL_CONSTANTS.COMPANY_NAME}" <${fromEmail}>`,
+      to: to,
+      subject: EMAIL_SUBJECTS.USER_CREATED,
+      html: generateUserCreatedEmailHTML(fullName, email, password, role, loginUrl),
+      text: generateUserCreatedEmailText(fullName, email, password, role, loginUrl),
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ User creation email sent:', info.messageId);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Failed to send user creation email:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+// Generate HTML email template for user creation
+function generateUserCreatedEmailHTML(
+  fullName: string | null, 
+  email: string, 
+  password: string, 
+  role: string,
+  loginUrl: string
+): string {
+  const displayName = fullName || 'User';
+  
+  // Load the HTML template
+  const template = loadEmailTemplate('user-created');
+  
+  // Prepare template variables
+  const variables = {
+    SUBJECT_LINE: EMAIL_TRANSLATIONS.USER_CREATED.SUBJECT_LINE,
+    COMPANY_SHORT_NAME: EMAIL_CONSTANTS.COMPANY_SHORT_NAME,
+    COMPANY_NAME: EMAIL_CONSTANTS.COMPANY_NAME,
+    GREETING: EMAIL_TRANSLATIONS.USER_CREATED.GREETING,
+    DISPLAY_NAME: displayName,
+    MAIN_MESSAGE: EMAIL_TRANSLATIONS.USER_CREATED.MAIN_MESSAGE,
+    LOGIN_INSTRUCTION: EMAIL_TRANSLATIONS.USER_CREATED.LOGIN_INSTRUCTION,
+    CREDENTIALS_TITLE: EMAIL_TRANSLATIONS.USER_CREATED.CREDENTIALS_TITLE,
+    EMAIL_LABEL: EMAIL_TRANSLATIONS.USER_CREATED.EMAIL_LABEL,
+    PASSWORD_LABEL: EMAIL_TRANSLATIONS.USER_CREATED.PASSWORD_LABEL,
+    ROLE_LABEL: EMAIL_TRANSLATIONS.USER_CREATED.ROLE_LABEL,
+    USER_EMAIL: email,
+    USER_PASSWORD: password,
+    USER_ROLE: role.charAt(0).toUpperCase() + role.slice(1),
+    LOGIN_BUTTON_TEXT: EMAIL_TRANSLATIONS.USER_CREATED.LOGIN_BUTTON_TEXT,
+    LOGIN_URL: loginUrl,
+    SECURITY_NOTE: EMAIL_TRANSLATIONS.USER_CREATED.SECURITY_NOTE,
+    SUPPORT_MESSAGE: EMAIL_TRANSLATIONS.USER_CREATED.SUPPORT_MESSAGE,
+    FOOTER_MESSAGE: EMAIL_TRANSLATIONS.USER_CREATED.FOOTER_MESSAGE,
+    NO_REPLY_MESSAGE: EMAIL_TRANSLATIONS.USER_CREATED.NO_REPLY_MESSAGE,
+  };
+  
+  // Replace template variables and return
+  return replaceTemplateVariables(template, variables);
+}
+
+// Generate plain text email template for user creation
+function generateUserCreatedEmailText(
+  fullName: string | null, 
+  email: string, 
+  password: string, 
+  role: string,
+  loginUrl: string
+): string {
+  const displayName = fullName || 'User';
+  
+  return `
+${EMAIL_TRANSLATIONS.USER_CREATED.SUBJECT_LINE} - ${EMAIL_CONSTANTS.COMPANY_NAME}
+
+${EMAIL_TRANSLATIONS.USER_CREATED.GREETING} ${displayName},
+
+${EMAIL_TRANSLATIONS.USER_CREATED.MAIN_MESSAGE}
+
+${EMAIL_TRANSLATIONS.USER_CREATED.LOGIN_INSTRUCTION}
+
+${EMAIL_TRANSLATIONS.USER_CREATED.CREDENTIALS_TITLE}:
+${EMAIL_TRANSLATIONS.USER_CREATED.EMAIL_LABEL}: ${email}
+${EMAIL_TRANSLATIONS.USER_CREATED.PASSWORD_LABEL}: ${password}
+${EMAIL_TRANSLATIONS.USER_CREATED.ROLE_LABEL}: ${role.charAt(0).toUpperCase() + role.slice(1)}
+
+Login URL: ${loginUrl}
+
+SECURITY NOTE:
+${EMAIL_TRANSLATIONS.USER_CREATED.SECURITY_NOTE}
+
+${EMAIL_TRANSLATIONS.USER_CREATED.SUPPORT_MESSAGE}
+
+---
+${EMAIL_TRANSLATIONS.USER_CREATED.FOOTER_MESSAGE}
+${EMAIL_TRANSLATIONS.USER_CREATED.NO_REPLY_MESSAGE}
+  `;
+}
+
 // Send test email
 export async function sendTestEmail(to: string): Promise<{ success: boolean; error?: string }> {
   try {

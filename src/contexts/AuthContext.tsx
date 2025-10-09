@@ -8,9 +8,11 @@ interface AuthUser {
   id: string;
   email: string;
   full_name: string | null;
+  phone?: string | null;
   role: 'admin' | 'pm' | 'warehouse' | 'client_viewer';
   status: 'active' | 'inactive' | 'pending';
   rememberMe: boolean;
+  permissions?: string[]; // Database permissions
 }
 
 interface AuthTokens {
@@ -39,6 +41,8 @@ interface AuthContextType {
   canManageInventory: boolean;
   canManageProjects: boolean;
   canManageLoadPlans: boolean;
+  // Authenticated fetch helper
+  authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,8 +66,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (savedUser && savedTokens) {
       try {
-        setUser(JSON.parse(savedUser));
-        setTokens(JSON.parse(savedTokens));
+        const userData = JSON.parse(savedUser);
+        const tokenData = JSON.parse(savedTokens);
+        
+        setUser(userData);
+        setTokens(tokenData);
+        
+        // Fetch fresh permissions from database
+        if (userData.id && tokenData.accessToken) {
+          fetchUserPermissions(userData.id, tokenData.accessToken).then(permissions => {
+            if (permissions.length > 0) {
+              const userWithPermissions = { ...userData, permissions };
+              setUser(userWithPermissions);
+              
+              // Update stored user data
+              if (localStorage.getItem('trucker_user')) {
+                localStorage.setItem('trucker_user', JSON.stringify(userWithPermissions));
+              } else {
+                sessionStorage.setItem('trucker_user', JSON.stringify(userWithPermissions));
+              }
+            }
+          });
+        }
       } catch (error) {
         console.error('Error parsing saved user/tokens:', error);
         localStorage.removeItem('trucker_user');
@@ -74,6 +98,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(false);
   }, []);
+
+  // Fetch user permissions from database
+  const fetchUserPermissions = async (userId: string, accessToken: string) => {
+    try {
+      const response = await fetch('/api/user/permissions', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔐 Fetched permissions from database:', data.permissions);
+        return data.permissions || [];
+      }
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+    }
+    return [];
+  };
 
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
@@ -88,17 +132,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
-        setUser(data.user);
+        // Fetch user permissions from database
+        const permissions = await fetchUserPermissions(data.user.id, data.tokens.accessToken);
+        
+        // Add permissions to user object
+        const userWithPermissions = {
+          ...data.user,
+          permissions
+        };
+        
+        setUser(userWithPermissions);
         setTokens(data.tokens);
         
         // Save to localStorage only if rememberMe is true
         console.log('rememberMe:', rememberMe);
         if (rememberMe) {
-          localStorage.setItem('trucker_user', JSON.stringify(data.user));
+          localStorage.setItem('trucker_user', JSON.stringify(userWithPermissions));
           localStorage.setItem('trucker_tokens', JSON.stringify(data.tokens));
         } else {
           // For session-only storage, use sessionStorage
-          sessionStorage.setItem('trucker_user', JSON.stringify(data.user));
+          sessionStorage.setItem('trucker_user', JSON.stringify(userWithPermissions));
           sessionStorage.setItem('trucker_tokens', JSON.stringify(data.tokens));
         }
         
@@ -194,9 +247,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isWarehouse = user?.role === 'warehouse';
   const isClientViewer = user?.role === 'client_viewer';
 
-  // Permission checks
+  // Permission checks - Admin gets everything, others follow restrictions
   const hasPermissionCheck = (permission: string): boolean => {
     if (!user) return false;
+    
+    // Admin role gets ALL permissions - no restrictions
+    if (user.role === 'admin') {
+      console.log('🔍 Admin role - allowing ALL permissions:', permission);
+      return true;
+    }
+    
+    // If user has database permissions, use them
+    if (user.permissions && user.permissions.length > 0) {
+      console.log('🔍 Using database permissions:', user.permissions);
+      console.log('🔍 Checking permission:', permission);
+      const hasPermission = user.permissions.includes(permission);
+      console.log('🔍 Result:', hasPermission);
+      return hasPermission;
+    }
+    
+    // For other roles, check if it's navigation.dashboard and restrict it
+    if (permission === 'navigation.dashboard') {
+      console.log('🔍 Dashboard permission requested for non-admin role - returning false');
+      return false; // Hide Dashboard tab for non-admin roles
+    }
+    
+    // Fallback to static permissions for other roles and permissions
+    console.log('🔍 Using static permissions for role:', user.role);
     return hasPermission(user.role, permission);
   };
 
@@ -205,6 +282,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canManageInventoryCheck = user ? canManageInventory(user.role) : false;
   const canManageProjectsCheck = user ? canManageProjects(user.role) : false;
   const canManageLoadPlansCheck = user ? canManageLoadPlans(user.role) : false;
+
+  // Authenticated fetch helper
+  const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const token = getAccessToken();
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(url, {
+      ...options,
+      headers,
+    });
+  };
 
   const value = {
     user,
@@ -227,6 +323,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canManageInventory: canManageInventoryCheck,
     canManageProjects: canManageProjectsCheck,
     canManageLoadPlans: canManageLoadPlansCheck,
+    // Authenticated fetch helper
+    authenticatedFetch,
   };
 
   return (

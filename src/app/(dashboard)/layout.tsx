@@ -20,13 +20,16 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <LoadingSpinner 
+  //       text="Loading dashboard..." 
+  //       fullScreen={true}
+  //       size="lg"
+  //       color="white"
+  //     />
+  //   );
+  // }
 
   if (!user) {
     return null; // Will redirect to login

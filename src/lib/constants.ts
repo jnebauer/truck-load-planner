@@ -10,6 +10,7 @@ export const EMAIL_CONSTANTS = {
 export const EMAIL_SUBJECTS = {
   PASSWORD_RESET: 'Password Reset Request - Truck Loading & Storage Tracker',
   TEST_EMAIL: 'Test Email - Truck Loading & Storage Tracker',
+  USER_CREATED: 'Welcome to Truck Loading & Storage Tracker - Your Account is Ready',
 } as const;
 
 // Security messages

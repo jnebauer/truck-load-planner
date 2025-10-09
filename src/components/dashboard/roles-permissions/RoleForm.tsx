@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Save } from 'lucide-react';
+import NavigationPermissionCard from '@/components/dashboard/roles-permissions/NavigationPermissionCard';
 
 interface Role {
   id: string;
@@ -49,7 +50,7 @@ export default function RoleForm({
 }: RoleFormProps) {
   return (
     <form onSubmit={onSubmit} className="flex-1 flex flex-col">
-      <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto">
+      <div className="flex-1 px-6 py-2 space-y-6 overflow-y-auto">
         {/* Role Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -89,36 +90,39 @@ export default function RoleForm({
           <p className="text-sm text-gray-500 mb-4">
             Select permissions for each sidebar section. Users will only see tabs they have navigation permissions for.
           </p>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {Object.entries(permissionsByCategory).map(([category, permissions]) => (
-              <div key={category} className="border border-gray-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  {category}
-                </h4>
-                <div className="space-y-2 ml-4">
-                  {permissions.map((permission) => (
-                    <div key={permission.id} className="flex items-start">
+          <div className="space-y-6 max-h-96 overflow-y-auto">
+            {Object.keys(permissionsByCategory).length > 0 ? (
+              Object.entries(permissionsByCategory).map(([categoryName, categoryPermissions]) => (
+                <NavigationPermissionCard
+                  key={categoryName}
+                  categoryName={categoryName}
+                  permissions={categoryPermissions}
+                  selectedPermissions={watchedPermissions || []}
+                  onTogglePermission={togglePermission}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">Loading permissions...</p>
+                <div className="space-y-2 text-left">
+                  <p className="text-sm text-gray-600">Fallback permissions:</p>
+                  {['users.read', 'users.create', 'roles.read', 'navigation.dashboard'].map(permission => (
+                    <div key={permission} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        id={permission.id}
-                        checked={watchedPermissions?.includes(permission.id) || false}
-                        onChange={() => togglePermission(permission.id)}
-                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        id={permission}
+                        checked={watchedPermissions?.includes(permission) || false}
+                        onChange={() => togglePermission(permission)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <label htmlFor={permission.id} className="ml-3 flex-1">
-                        <div className="text-sm font-medium text-gray-900">
-                          {permission.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {permission.description}
-                        </div>
+                      <label htmlFor={permission} className="text-sm text-gray-700">
+                        {permission}
                       </label>
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

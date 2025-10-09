@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
 
 // GET /api/dashboard/roles-permissions - Get all roles (with proper permissions)
 export async function GET(request: NextRequest) {
@@ -9,15 +10,15 @@ export async function GET(request: NextRequest) {
     const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
-        error: authError || 'Unauthorized' 
-      }, { status: 401 });
+        error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED 
+      }, { status: HTTP_STATUS.UNAUTHORIZED });
     }
 
     // Check if user has permission to read roles
     if (!user.role || !['admin', 'pm'].includes(user.role)) {
       return NextResponse.json({ 
-        error: 'Insufficient permissions to view roles' 
-      }, { status: 403 });
+        error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS 
+      }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
     const supabase = await createClient();
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching roles:', error);
-      return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
     }
 
     // Transform data to include user count and permissions
@@ -47,20 +48,8 @@ export async function GET(request: NextRequest) {
       isActive: role.is_active
     }));
 
-    // Get available permissions from database enum
-    const availablePermissions = [
-      'users.create', 'users.read', 'users.update', 'users.delete',
-      'clients.create', 'clients.read', 'clients.update', 'clients.delete',
-      'roles.create', 'roles.read', 'roles.update', 'roles.delete',
-      'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
-      'projects.create', 'projects.read', 'projects.update', 'projects.delete',
-      'load_plans.create', 'load_plans.read', 'load_plans.update', 'load_plans.delete',
-      'reports.generate', 'reports.view',
-      // Navigation permissions
-      'navigation.dashboard', 'navigation.inventory', 'navigation.truck_planner',
-      'navigation.reports', 'navigation.import', 'navigation.clients',
-      'navigation.user_management', 'navigation.settings'
-    ];
+    // Import available permissions from the permissions file
+    const { availablePermissions } = await import('@/lib/permissions');
 
     return NextResponse.json({ 
       roles: transformedRoles,
@@ -68,7 +57,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }
 
@@ -79,15 +68,15 @@ export async function POST(request: NextRequest) {
     const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
-        error: authError || 'Unauthorized' 
-      }, { status: 401 });
+        error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED 
+      }, { status: HTTP_STATUS.UNAUTHORIZED });
     }
 
     // Only admin can create roles
     if (user.role !== 'admin') {
       return NextResponse.json({ 
-        error: 'Only administrators can create roles' 
-      }, { status: 403 });
+        error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS 
+      }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
     const supabase = await createClient();
@@ -97,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Check if role name already exists
@@ -108,7 +97,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingRole) {
-      return NextResponse.json({ error: 'Role name already exists' }, { status: 400 });
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_ROLE }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Create new role
@@ -123,24 +112,38 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating role:', error);
-      return NextResponse.json({ error: 'Failed to create role' }, { status: 500 });
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
     }
 
     // Add permissions if provided
+    console.log('🔐 Permissions received:', permissions);
+    console.log('🔐 Permissions length:', permissions?.length);
+    
     if (permissions && permissions.length > 0) {
+      console.log('✅ Permissions array is not empty, proceeding to save...');
+      
       const permissionInserts = permissions.map((permission: string) => ({
         role_id: newRole.id,
-        permission
+        permission: permission.trim() // Ensure no extra whitespace
       }));
+
+      console.log('📝 Permission inserts:', permissionInserts);
 
       const { error: permissionError } = await supabase
         .from('role_permissions')
         .insert(permissionInserts);
 
       if (permissionError) {
-        console.error('Error adding permissions:', permissionError);
-        // Don't fail the request, just log the error
+        console.error('❌ Error adding permissions:', permissionError);
+        return NextResponse.json({ 
+          error: API_RESPONSE_MESSAGES.ERROR.INVALID_PERMISSIONS, 
+          details: permissionError.message 
+        }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      } else {
+        console.log('✅ Permissions saved successfully');
       }
+    } else {
+      console.log('⚠️ No permissions provided or empty array');
     }
 
     return NextResponse.json({ 
@@ -152,9 +155,87 @@ export async function POST(request: NextRequest) {
         userCount: 0,
         isActive: newRole.is_active
       }
-    }, { status: 201 });
+    }, { status: HTTP_STATUS.CREATED });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+  }
+}
+
+// PUT method for updating roles
+export async function PUT(request: Request) {
+  try {
+    const { id, name, permissions, isActive } = await request.json();
+    
+    console.log('🔄 PUT Request - Updating role:', { id, name, permissions, isActive });
+
+    if (!id) {
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
+    // Initialize Supabase client
+    const supabase = await createClient();
+
+    // Update role
+    const { data: updatedRole, error: roleError } = await supabase
+      .from('roles')
+      .update({ 
+        name, 
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (roleError) {
+      console.error('Error updating role:', roleError);
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Delete existing permissions
+    const { error: deleteError } = await supabase
+      .from('role_permissions')
+      .delete()
+      .eq('role_id', id);
+
+    if (deleteError) {
+      console.error('Error deleting existing permissions:', deleteError);
+      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.INVALID_PERMISSIONS }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Add new permissions if provided
+    if (permissions && permissions.length > 0) {
+      const permissionInserts = permissions.map((permission: string) => ({
+        role_id: id,
+        permission: permission.trim()
+      }));
+
+      const { error: permissionError } = await supabase
+        .from('role_permissions')
+        .insert(permissionInserts);
+
+      if (permissionError) {
+        console.error('Error adding permissions:', permissionError);
+        return NextResponse.json({ 
+          error: API_RESPONSE_MESSAGES.ERROR.INVALID_PERMISSIONS, 
+          details: permissionError.message 
+        }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      }
+    }
+
+    return NextResponse.json({ 
+      role: {
+        id: updatedRole.id,
+        name: updatedRole.name,
+        permissions: permissions || [],
+        createdAt: updatedRole.created_at,
+        userCount: 0,
+        isActive: updatedRole.is_active
+      }
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }

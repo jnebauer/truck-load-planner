@@ -131,36 +131,52 @@ export const getNavigationPermissionCategories = () => {
   };
 };
 
-// Available permissions list
+// Available permissions list - matches database enum
 export const availablePermissions = [
+  // User Management
   'users.create',
   'users.read',
   'users.update',
   'users.delete',
+  
+  // Client Management
   'clients.create',
   'clients.read',
   'clients.update',
   'clients.delete',
+  
+  // Role Management
   'roles.create',
   'roles.read',
   'roles.update',
   'roles.delete',
+  
+  // Inventory Management
   'inventory.create',
   'inventory.read',
   'inventory.update',
   'inventory.delete',
+  
+  // Project Management
   'projects.create',
   'projects.read',
   'projects.update',
   'projects.delete',
+  
+  // Load Plans Management
   'load_plans.create',
   'load_plans.read',
   'load_plans.update',
   'load_plans.delete',
+  
+  // Reports Management (both old and new formats for compatibility)
   'reports.create',
   'reports.read',
   'reports.update',
   'reports.delete',
+  'reports.generate', // Legacy format
+  'reports.view',     // Legacy format
+  
   // Navigation permissions
   'navigation.dashboard',
   'navigation.inventory',
@@ -170,7 +186,7 @@ export const availablePermissions = [
   'navigation.clients',
   'navigation.user_management',
   'navigation.settings'
-];
+] as const;
 
 // Group permissions by category
 export const groupPermissionsByCategory = (permissions: Permission[]) => {
