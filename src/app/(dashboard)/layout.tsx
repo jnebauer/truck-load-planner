@@ -4,7 +4,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Layout } from '@/components';
+import { Layout, LoadingSpinner } from '@/components';
 
 export default function DashboardLayout({
   children,
@@ -20,16 +20,16 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  // if (loading) {
-  //   return (
-  //     <LoadingSpinner 
-  //       text="Loading dashboard..." 
-  //       fullScreen={true}
-  //       size="lg"
-  //       color="white"
-  //     />
-  //   );
-  // }
+  if (loading) {
+    return (
+      <LoadingSpinner 
+        text="Loading dashboard..." 
+        fullScreen={true}
+        size="lg"
+        color="white"
+      />
+    );
+  }
 
   if (!user) {
     return null; // Will redirect to login
