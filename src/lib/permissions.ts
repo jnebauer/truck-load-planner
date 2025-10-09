@@ -31,7 +31,8 @@ export const formatPermission = (permission: string): Permission => {
     'inventory': 'Inventory Management',
     'projects': 'Project Management',
     'load_plans': 'Load Planning',
-    'reports': 'Reports'
+    'reports': 'Reports',
+    'navigation': 'Navigation Access'
   };
   
   const actionNames: Record<string, string> = {
@@ -39,7 +40,15 @@ export const formatPermission = (permission: string): Permission => {
     'read': 'View',
     'update': 'Edit',
     'delete': 'Delete',
-    'manage': 'Manage'
+    'manage': 'Manage',
+    'dashboard': 'Dashboard',
+    'inventory': 'Inventory',
+    'truck_planner': 'Truck Planner',
+    'reports': 'Reports',
+    'import': 'Import',
+    'clients': 'Clients',
+    'user_management': 'User Management',
+    'settings': 'Settings'
   };
   
   return {
@@ -47,6 +56,78 @@ export const formatPermission = (permission: string): Permission => {
     name: `${actionNames[action] || action} ${moduleNames[module] || module}`,
     description: `${actionNames[action] || action} permissions for ${moduleNames[module] || module}`,
     category: moduleNames[module] || module
+  };
+};
+
+// Navigation-based permission categories for sidebar tabs
+export const getNavigationPermissionCategories = () => {
+  return {
+    'Dashboard': {
+      permissions: ['navigation.dashboard'],
+      description: 'Access to main dashboard'
+    },
+    'Inventory Management': {
+      permissions: [
+        'navigation.inventory',
+        'inventory.create',
+        'inventory.read', 
+        'inventory.update',
+        'inventory.delete'
+      ],
+      description: 'Manage inventory items and access inventory section'
+    },
+    'Truck Planner': {
+      permissions: [
+        'navigation.truck_planner',
+        'load_plans.create',
+        'load_plans.read',
+        'load_plans.update', 
+        'load_plans.delete'
+      ],
+      description: 'Plan truck loads and access truck planner section'
+    },
+    'Reports': {
+      permissions: [
+        'navigation.reports',
+        'reports.create',
+        'reports.read',
+        'reports.update',
+        'reports.delete'
+      ],
+      description: 'Generate and view reports'
+    },
+    'Import': {
+      permissions: ['navigation.import'],
+      description: 'Access import functionality'
+    },
+    'Client Management': {
+      permissions: [
+        'navigation.clients',
+        'clients.create',
+        'clients.read',
+        'clients.update',
+        'clients.delete'
+      ],
+      description: 'Manage clients and access client section'
+    },
+    'User Management': {
+      permissions: [
+        'navigation.user_management',
+        'users.create',
+        'users.read',
+        'users.update',
+        'users.delete',
+        'roles.create',
+        'roles.read',
+        'roles.update',
+        'roles.delete'
+      ],
+      description: 'Manage users, roles and permissions'
+    },
+    'Settings': {
+      permissions: ['navigation.settings'],
+      description: 'Access system settings'
+    }
   };
 };
 
@@ -79,7 +160,16 @@ export const availablePermissions = [
   'reports.create',
   'reports.read',
   'reports.update',
-  'reports.delete'
+  'reports.delete',
+  // Navigation permissions
+  'navigation.dashboard',
+  'navigation.inventory',
+  'navigation.truck_planner',
+  'navigation.reports',
+  'navigation.import',
+  'navigation.clients',
+  'navigation.user_management',
+  'navigation.settings'
 ];
 
 // Group permissions by category
@@ -118,7 +208,11 @@ export const rolePermissions: Record<string, string[]> = {
     'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
     'projects.create', 'projects.read', 'projects.update', 'projects.delete',
     'load_plans.create', 'load_plans.read', 'load_plans.update', 'load_plans.delete',
-    'reports.create', 'reports.read', 'reports.update', 'reports.delete'
+    'reports.create', 'reports.read', 'reports.update', 'reports.delete',
+    // Navigation permissions for admin
+    'navigation.dashboard', 'navigation.inventory', 'navigation.truck_planner',
+    'navigation.reports', 'navigation.import', 'navigation.clients',
+    'navigation.user_management', 'navigation.settings'
   ],
   'pm': [
     'users.read',
@@ -126,18 +220,25 @@ export const rolePermissions: Record<string, string[]> = {
     'inventory.read', 'inventory.update',
     'projects.create', 'projects.read', 'projects.update', 'projects.delete',
     'load_plans.create', 'load_plans.read', 'load_plans.update', 'load_plans.delete',
-    'reports.read'
+    'reports.read',
+    // Navigation permissions for PM
+    'navigation.dashboard', 'navigation.inventory', 'navigation.truck_planner',
+    'navigation.reports', 'navigation.clients'
   ],
   'warehouse': [
     'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
     'projects.read',
-    'load_plans.read'
+    'load_plans.read',
+    // Navigation permissions for warehouse
+    'navigation.dashboard', 'navigation.inventory', 'navigation.truck_planner'
   ],
   'client_viewer': [
     'clients.read',
     'projects.read',
     'load_plans.read',
-    'reports.read'
+    'reports.read',
+    // Navigation permissions for client viewer
+    'navigation.dashboard', 'navigation.clients', 'navigation.reports'
   ]
 };
 
@@ -185,4 +286,37 @@ export const canManageLoadPlans = (userRole: string): boolean => {
          hasPermission(userRole, 'load_plans.create') ||
          hasPermission(userRole, 'load_plans.update') ||
          hasPermission(userRole, 'load_plans.delete');
+};
+
+// Navigation permission checking functions
+export const canAccessDashboard = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.dashboard');
+};
+
+export const canAccessInventory = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.inventory');
+};
+
+export const canAccessTruckPlanner = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.truck_planner');
+};
+
+export const canAccessReports = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.reports');
+};
+
+export const canAccessImport = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.import');
+};
+
+export const canAccessClients = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.clients');
+};
+
+export const canAccessUserManagement = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.user_management');
+};
+
+export const canAccessSettings = (userRole: string): boolean => {
+  return hasPermission(userRole, 'navigation.settings');
 };

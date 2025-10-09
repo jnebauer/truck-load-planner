@@ -40,7 +40,7 @@ export default function LoginPage() {
         showToast.error('Login Failed', { description: 'Invalid email or password' });
       } else {
         showToast.success('Login Successful', { description: 'Login successful' });
-        router.push('/admin');
+        router.push('/dashboard');
       }
     } catch {
       const errorMsg = 'An error occurred during login';
@@ -152,16 +152,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
-          {/* Demo Credentials */}
-          {/* <div className="mt-6 p-4 bg-gray-50 rounded-md">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials:</h3>
-            <div className="text-xs text-gray-600 space-y-1">
-              <div><strong>Admin:</strong> admin@trucker.com / admin123</div>
-              <div><strong>PM:</strong> pm@trucker.com / pm123</div>
-              <div><strong>Warehouse:</strong> warehouse@trucker.com / warehouse123</div>
-            </div>
-          </div> */}
         </div>
       </div>
     </div>

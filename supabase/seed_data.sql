@@ -57,6 +57,15 @@ INSERT INTO role_permissions (role_id, permission, created_at) VALUES
 ('550e8400-e29b-41d4-a716-446655440001', 'load_plans.delete', NOW()),
 ('550e8400-e29b-41d4-a716-446655440001', 'reports.generate', NOW()),
 ('550e8400-e29b-41d4-a716-446655440001', 'reports.view', NOW()),
+-- Admin navigation permissions
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.dashboard', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.inventory', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.truck_planner', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.reports', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.import', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.clients', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.user_management', NOW()),
+('550e8400-e29b-41d4-a716-446655440001', 'navigation.settings', NOW()),
 
 -- Project Manager permissions
 ('550e8400-e29b-41d4-a716-446655440002', 'clients.read', NOW()),
@@ -72,6 +81,12 @@ INSERT INTO role_permissions (role_id, permission, created_at) VALUES
 ('550e8400-e29b-41d4-a716-446655440002', 'load_plans.delete', NOW()),
 ('550e8400-e29b-41d4-a716-446655440002', 'reports.generate', NOW()),
 ('550e8400-e29b-41d4-a716-446655440002', 'reports.view', NOW()),
+-- PM navigation permissions
+('550e8400-e29b-41d4-a716-446655440002', 'navigation.dashboard', NOW()),
+('550e8400-e29b-41d4-a716-446655440002', 'navigation.inventory', NOW()),
+('550e8400-e29b-41d4-a716-446655440002', 'navigation.truck_planner', NOW()),
+('550e8400-e29b-41d4-a716-446655440002', 'navigation.reports', NOW()),
+('550e8400-e29b-41d4-a716-446655440002', 'navigation.clients', NOW()),
 
 -- Warehouse permissions
 ('550e8400-e29b-41d4-a716-446655440003', 'clients.read', NOW()),
@@ -81,12 +96,20 @@ INSERT INTO role_permissions (role_id, permission, created_at) VALUES
 ('550e8400-e29b-41d4-a716-446655440003', 'inventory.delete', NOW()),
 ('550e8400-e29b-41d4-a716-446655440003', 'projects.read', NOW()),
 ('550e8400-e29b-41d4-a716-446655440003', 'reports.view', NOW()),
+-- Warehouse navigation permissions
+('550e8400-e29b-41d4-a716-446655440003', 'navigation.dashboard', NOW()),
+('550e8400-e29b-41d4-a716-446655440003', 'navigation.inventory', NOW()),
+('550e8400-e29b-41d4-a716-446655440003', 'navigation.truck_planner', NOW()),
 
 -- Client Viewer permissions
 ('550e8400-e29b-41d4-a716-446655440004', 'clients.read', NOW()),
 ('550e8400-e29b-41d4-a716-446655440004', 'inventory.read', NOW()),
 ('550e8400-e29b-41d4-a716-446655440004', 'projects.read', NOW()),
-('550e8400-e29b-41d4-a716-446655440004', 'reports.view', NOW());
+('550e8400-e29b-41d4-a716-446655440004', 'reports.view', NOW()),
+-- Client Viewer navigation permissions
+('550e8400-e29b-41d4-a716-446655440004', 'navigation.dashboard', NOW()),
+('550e8400-e29b-41d4-a716-446655440004', 'navigation.clients', NOW()),
+('550e8400-e29b-41d4-a716-446655440004', 'navigation.reports', NOW());
 
 
 -- Insert Users (with hashed passwords)

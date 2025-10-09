@@ -1,17 +1,23 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth-middleware';
+import { authenticateUser } from '@/lib/auth-middleware';
 
-// GET /api/admin/roles-permissions - Get all roles (admin only)
+// GET /api/dashboard/roles-permissions - Get all roles (with proper permissions)
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is authenticated and is admin
-    const { user, error: authError } = await requireAdmin(request);
+    // Check if user is authenticated
+    const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
         error: authError || 'Unauthorized' 
-      }, { status: authError === 'Admin access required' ? 403 : 401 });
+      }, { status: 401 });
+    }
+
+    // Check if user has permission to read roles
+    if (!user.role || !['admin', 'pm'].includes(user.role)) {
+      return NextResponse.json({ 
+        error: 'Insufficient permissions to view roles' 
+      }, { status: 403 });
     }
 
     const supabase = await createClient();
@@ -49,7 +55,11 @@ export async function GET(request: NextRequest) {
       'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
       'projects.create', 'projects.read', 'projects.update', 'projects.delete',
       'load_plans.create', 'load_plans.read', 'load_plans.update', 'load_plans.delete',
-      'reports.generate', 'reports.view'
+      'reports.generate', 'reports.view',
+      // Navigation permissions
+      'navigation.dashboard', 'navigation.inventory', 'navigation.truck_planner',
+      'navigation.reports', 'navigation.import', 'navigation.clients',
+      'navigation.user_management', 'navigation.settings'
     ];
 
     return NextResponse.json({ 
@@ -62,15 +72,22 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/admin/roles-permissions - Create new role (admin only)
+// POST /api/dashboard/roles-permissions - Create new role (admin only)
 export async function POST(request: NextRequest) {
   try {
-    // Check if user is authenticated and is admin
-    const { user, error: authError } = await requireAdmin(request);
+    // Check if user is authenticated
+    const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
         error: authError || 'Unauthorized' 
-      }, { status: authError === 'Admin access required' ? 403 : 401 });
+      }, { status: 401 });
+    }
+
+    // Only admin can create roles
+    if (user.role !== 'admin') {
+      return NextResponse.json({ 
+        error: 'Only administrators can create roles' 
+      }, { status: 403 });
     }
 
     const supabase = await createClient();

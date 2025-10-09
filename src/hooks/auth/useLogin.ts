@@ -71,7 +71,7 @@ export const useLogin = () => {
       });
 
       // Redirect based on role
-      const redirectPath = result.user?.role === 'admin' ? '/admin' : '/dashboard';
+      const redirectPath = '/dashboard';
       router.push(redirectPath);
 
       return { error: null, user: result.user };

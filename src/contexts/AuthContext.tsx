@@ -11,12 +11,6 @@ interface AuthUser {
   role: 'admin' | 'pm' | 'warehouse' | 'client_viewer';
   status: 'active' | 'inactive' | 'pending';
   rememberMe: boolean;
-  clients: Array<{
-    id: string;
-    name: string;
-    logo_url: string | null;
-    billing_ref: string | null;
-  }>;
 }
 
 interface AuthTokens {
@@ -45,9 +39,6 @@ interface AuthContextType {
   canManageInventory: boolean;
   canManageProjects: boolean;
   canManageLoadPlans: boolean;
-  // Client access
-  canAccessClient: (clientId: string) => boolean;
-  getAccessibleClientIds: () => string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -215,19 +206,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canManageProjectsCheck = user ? canManageProjects(user.role) : false;
   const canManageLoadPlansCheck = user ? canManageLoadPlans(user.role) : false;
 
-  // Client access checks
-  const canAccessClientCheck = (clientId: string): boolean => {
-    if (!user) return false;
-    if (isAdmin) return true; // Admin can access all clients
-    return user.clients.some(client => client.id === clientId);
-  };
-
-  const getAccessibleClientIds = (): string[] => {
-    if (!user) return [];
-    if (isAdmin) return []; // Admin can access all clients
-    return user.clients.map(client => client.id);
-  };
-
   const value = {
     user,
     loading,
@@ -249,9 +227,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canManageInventory: canManageInventoryCheck,
     canManageProjects: canManageProjectsCheck,
     canManageLoadPlans: canManageLoadPlansCheck,
-    // Client access
-    canAccessClient: canAccessClientCheck,
-    getAccessibleClientIds,
   };
 
   return (

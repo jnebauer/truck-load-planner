@@ -29,19 +29,7 @@ export default function Dashboard() {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Role: {user?.role}</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-blue-900">Assigned Clients</h3>
-              <p className="text-blue-700 mt-2">
-                {user?.clients.length || 0} client(s) assigned
-              </p>
-              {user?.clients.map((client) => (
-                <div key={client.id} className="mt-2 text-sm text-blue-600">
-                  • {client.name}
-                </div>
-              ))}
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-lg font-medium text-green-900">Permissions</h3>
               <div className="text-green-700 mt-2 text-sm">

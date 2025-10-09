@@ -32,5 +32,5 @@ export default function DashboardLayout({
     return null; // Will redirect to login
   }
 
-  return <Layout user={user}>{children}</Layout>;
+  return <Layout>{children}</Layout>;
 }

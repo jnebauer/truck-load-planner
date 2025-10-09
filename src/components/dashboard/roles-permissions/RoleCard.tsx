@@ -3,7 +3,7 @@
 import React from 'react';
 import { Edit, Trash2, Shield } from 'lucide-react';
 
-interface Role {
+interface Role extends Record<string, unknown> {
   id: string;
   name: string;
   permissions: string[];
@@ -14,8 +14,8 @@ interface Role {
 
 interface RoleCardProps {
   role: Role;
-  onEdit: (role: Role) => void;
-  onDelete: (roleId: string) => void;
+  onEdit?: (role: Role) => void;
+  onDelete?: (roleId: string) => void;
 }
 
 const RoleCard = React.memo(({ role, onEdit, onDelete }: RoleCardProps) => {
@@ -53,20 +53,24 @@ const RoleCard = React.memo(({ role, onEdit, onDelete }: RoleCardProps) => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
         <div className="flex space-x-2">
-          <button
-            onClick={() => onEdit(role)}
-            className="text-blue-600 hover:text-blue-900"
-            title="Edit Role"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDelete(role.id)}
-            className="text-red-600 hover:text-red-900"
-            title="Delete Role"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(role)}
+              className="text-blue-600 hover:text-blue-900"
+              title="Edit Role"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(role.id)}
+              className="text-red-600 hover:text-red-900"
+              title="Delete Role"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </td>
     </tr>

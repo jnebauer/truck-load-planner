@@ -7,5 +7,5 @@ export * from './forms';
 // Layout Components
 export * from './layout';
 
-// Admin Components
-export * from './admin';
+// Dashboard Components
+export * from './dashboard';

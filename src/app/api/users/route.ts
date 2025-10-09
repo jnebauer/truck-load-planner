@@ -29,6 +29,13 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
+    // Check if user has permission to read users
+    if (!user.role || !['admin', 'pm'].includes(user.role)) {
+      return NextResponse.json({ 
+        error: 'Insufficient permissions to view users' 
+      }, { status: 403 });
+    }
+
     const supabase = await createClient();
 
     const usersQuery = supabase
@@ -41,9 +48,6 @@ export async function GET(request: NextRequest) {
           description
         )
       `);
-
-    // For now, all authenticated users can see all users
-    // In the future, you can add role-based filtering here
 
     const { data: users, error } = await usersQuery;
 
@@ -72,6 +76,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: authError || 'Unauthorized' 
       }, { status: 401 });
+    }
+
+    // Only admin can create users
+    if (user.role !== 'admin') {
+      return NextResponse.json({ 
+        error: 'Only administrators can create users' 
+      }, { status: 403 });
     }
 
     const supabase = await createClient();
