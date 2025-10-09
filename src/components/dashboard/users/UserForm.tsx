@@ -50,7 +50,7 @@ export default function UserForm({
   const [showPassword, setShowPassword] = React.useState(false);
 
   return (
-    <form onSubmit={onSubmit} className="flex-1 flex flex-col relative">
+    <form onSubmit={onSubmit} className="flex-1 flex flex-col">
       <div className="flex-1 px-6 py-2 space-y-6 overflow-y-auto">
         {/* Email */}
         <div>

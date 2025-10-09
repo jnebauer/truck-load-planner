@@ -20,16 +20,16 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <LoadingSpinner 
-        text="Loading dashboard..." 
-        fullScreen={true}
-        size="lg"
-        color="white"
-      />
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <LoadingSpinner 
+  //       text="Loading dashboard..." 
+  //       fullScreen={true}
+  //       size="lg"
+  //       color="white"
+  //     />
+  //   );
+  // }
 
   if (!user) {
     return null; // Will redirect to login
