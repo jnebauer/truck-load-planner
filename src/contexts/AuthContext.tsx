@@ -13,6 +13,7 @@ interface AuthUser {
   status: 'active' | 'inactive' | 'pending';
   rememberMe: boolean;
   permissions?: string[]; // Database permissions
+  accessibleApps?: string[]; // Apps user has access to
 }
 
 interface AuthTokens {
@@ -119,6 +120,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return [];
   };
 
+  // Fetch user's accessible apps from database
+  const fetchUserApps = async (userId: string, accessToken: string) => {
+    try {
+      const response = await fetch('/api/user/apps', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📱 Fetched accessible apps:', data.accessibleApps);
+        return data.accessibleApps || [];
+      }
+    } catch (error) {
+      console.error('Error fetching user apps:', error);
+    }
+    return [];
+  };
+
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       const response = await fetch('/api/auth/login', {
@@ -132,13 +153,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
-        // Fetch user permissions from database
-        const permissions = await fetchUserPermissions(data.user.id, data.tokens.accessToken);
+        // Fetch user permissions and accessible apps from database
+        const [permissions, accessibleApps] = await Promise.all([
+          fetchUserPermissions(data.user.id, data.tokens.accessToken),
+          fetchUserApps(data.user.id, data.tokens.accessToken)
+        ]);
         
-        // Add permissions to user object
+        // Add permissions and accessible apps to user object
         const userWithPermissions = {
           ...data.user,
-          permissions
+          permissions,
+          accessibleApps
         };
         
         setUser(userWithPermissions);

@@ -151,6 +151,57 @@ export type Database = {
         }
         Relationships: []
       }
+      app_permissions: {
+        Row: {
+          id: string
+          user_id: string
+          app_id: string
+          granted_by: string | null
+          granted_at: string
+          expires_at: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          app_id: string
+          granted_by?: string | null
+          granted_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          app_id?: string
+          granted_by?: string | null
+          granted_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       user_clients: {
         Row: {
           id: string

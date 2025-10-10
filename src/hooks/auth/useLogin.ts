@@ -55,10 +55,10 @@ export const useLogin = () => {
         return { error };
       }
 
-      showToast.success(TOAST_MESSAGES.SUCCESS.LOGIN_SUCCESS);
+      // showToast.success(TOAST_MESSAGES.SUCCESS.LOGIN_SUCCESS);
 
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect to apps dashboard instead of regular dashboard
+      router.push('/apps');
 
       return { error: null };
     } catch (error) {
