@@ -18,7 +18,7 @@ export const APPS_CONFIG: AppConfig[] = [
     name: 'Capacity Planner',
     description: 'Comprehensive resource planning and workload distribution system for optimal project management and team productivity.',
     icon: 'BarChart3',
-    url: 'http://localhost:3001', // Capacity planner URL
+    url: process.env.NEXT_PUBLIC_CAPACITY_PLANNER_URL || '', // Capacity planner URL
     color: 'blue',
     permission: 'apps.capacity_planner',
     isExternal: true,
