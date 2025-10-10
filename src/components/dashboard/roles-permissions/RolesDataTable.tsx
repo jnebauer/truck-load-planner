@@ -10,12 +10,27 @@ interface RolesDataTableProps {
   roles: Role[];
   onEditRole: (role: Role) => void;
   hasPermission: (permission: string) => boolean;
+  // Pagination props
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  paginationLoading: boolean;
+  onPageChange: (page: number) => void;
+  onSearch: (search: string) => void;
 }
 
 export default function RolesDataTable({
   roles,
   onEditRole,
   hasPermission,
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  paginationLoading,
+  onPageChange,
+  onSearch,
 }: RolesDataTableProps) {
   // Memoize columns for DataTable
   const columns: Column<Role>[] = useMemo(
@@ -144,6 +159,15 @@ export default function RolesDataTable({
       actions={actions}
       searchPlaceholder="Search roles..."
       emptyMessage="No roles found"
+      // Server-side pagination props
+      serverSidePagination={true}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      pageSize={itemsPerPage}
+      paginationLoading={paginationLoading}
+      onPageChange={onPageChange}
+      onSearch={onSearch}
     />
   );
 }

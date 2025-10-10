@@ -17,14 +17,6 @@ export interface Role {
   description?: string;
 }
 
-export interface UserFormData {
-  email: string;
-  password: string;
-  fullName: string;
-  phone: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending';
-}
 
 export interface UsersStats {
   totalUsers: number;

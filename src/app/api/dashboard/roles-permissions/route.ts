@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
-import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
 // GET /api/dashboard/roles-permissions - Get all roles (with proper permissions)
 export async function GET(request: NextRequest) {
@@ -21,21 +21,75 @@ export async function GET(request: NextRequest) {
       }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
+    // Get pagination parameters from query string
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.VALIDATION_ERROR 
+      }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
     const supabase = await createClient();
 
-    // Fetch roles from database
-    const { data: roles, error } = await supabase
+    // Calculate offset
+    const offset = (page - 1) * limit;
+
+    // Build query with pagination
+    let rolesQuery = supabase
       .from('roles')
       .select(`
         *,
         role_permissions(permission),
         users(count)
-      `)
-      .order('created_at', { ascending: false });
+      `, { count: 'exact' });
+
+    // Add search filter if provided
+    if (search) {
+      rolesQuery = rolesQuery.ilike('name', `%${search}%`);
+    }
+
+    // Add pagination
+    rolesQuery = rolesQuery
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data: roles, error, count } = await rolesQuery;
 
     if (error) {
       console.error('Error fetching roles:', error);
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Get total counts by status (without search filter)
+    const { data: allRoles, error: allRolesError, count: totalCount } = await supabase
+      .from('roles')
+      .select('is_active', { count: 'exact' });
+
+    if (allRolesError) {
+      console.error('Error getting total role counts:', allRolesError);
+    }
+
+    // Calculate stats
+    const stats = {
+      totalRoles: totalCount || 0,
+      activeRoles: 0,
+      inactiveRoles: 0,
+      totalPermissions: 0
+    };
+
+    if (allRoles) {
+      allRoles.forEach((role: { is_active: boolean }) => {
+        if (role.is_active) {
+          stats.activeRoles++;
+        } else {
+          stats.inactiveRoles++;
+        }
+      });
     }
 
     // Transform data to include user count and permissions
@@ -48,12 +102,29 @@ export async function GET(request: NextRequest) {
       isActive: role.is_active
     }));
 
+    // Calculate pagination info
+    const totalPages = Math.ceil((count || 0) / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
     // Import available permissions from the permissions file
     const { availablePermissions } = await import('@/lib/permissions');
+    
+    // Set total permissions count
+    stats.totalPermissions = availablePermissions.length;
 
     return NextResponse.json({ 
       roles: transformedRoles,
-      availablePermissions 
+      availablePermissions,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: count || 0,
+        itemsPerPage: limit,
+        hasNextPage,
+        hasPrevPage
+      },
+      stats
     });
   } catch (error) {
     console.error('API Error:', error);

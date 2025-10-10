@@ -1,40 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { useForgotPassword } from '@/hooks/auth';
 import { ArrowLeft, Mail, Truck, Package, CheckCircle } from 'lucide-react';
-import Link from 'next/link';
-import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/validations';
 
 export default function ForgotPasswordPage() {
-  const [success, setSuccess] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const { loading, requestPasswordReset } = useForgotPassword();
+  const { loading, success, message, form, handleSubmit } = useForgotPassword();
 
   const {
     register,
-    handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordFormData>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: '',
-    },
-  });
-
-  const onSubmit = async (data: ForgotPasswordFormData) => {
-    setSuccess(false);
-
-    const { error, message } = await requestPasswordReset({ email: data.email });
-    if (!error) {
-      setSuccess(true);
-      setMessage(message);
-    }
-  };
-
+  } = form;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -58,7 +34,10 @@ export default function ForgotPasswordPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-6"
+            onSubmit={form.handleSubmit(handleSubmit)}
+          >
             <div>
               <label
                 htmlFor="email"
@@ -89,7 +68,9 @@ export default function ForgotPasswordPage() {
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 

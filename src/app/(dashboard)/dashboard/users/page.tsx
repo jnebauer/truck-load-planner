@@ -15,6 +15,7 @@ export default function UsersPage() {
     roles,
     stats,
     loading,
+    paginationLoading,
     error,
     isFormOpen,
     editingUser,
@@ -24,6 +25,13 @@ export default function UsersPage() {
     handleFormSubmit,
     handleFormClose,
     hasPermission,
+    // Pagination props
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    handlePageChange,
+    handleSearch,
   } = useUsers();
 
   // Check if user has permission to access this page
@@ -58,7 +66,7 @@ export default function UsersPage() {
         onCreateUser={handleCreateUser}
       />
 
-      {/* Stats Cards */}
+      {/* Stats Cards */}~
       <UsersStatsCards stats={stats} />
 
       <div className="space-y-4">
@@ -66,6 +74,13 @@ export default function UsersPage() {
           users={users}
           onEditUser={handleEditUser}
           hasPermission={hasPermission}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          paginationLoading={paginationLoading}
+          onPageChange={handlePageChange}
+          onSearch={handleSearch}
         />
       </div>
 
@@ -79,11 +94,12 @@ export default function UsersPage() {
         <UserForm
           editingUser={editingUser}
           roles={roles}
-          onSubmit={form.handleSubmit(handleFormSubmit as (data: any) => Promise<void>)} // eslint-disable-line @typescript-eslint/no-explicit-any
+          onSubmit={form.handleSubmit(handleFormSubmit)}
           onClose={handleFormClose}
           isSubmitting={form.formState.isSubmitting}
           errors={form.formState.errors}
-          register={form.register as any} // eslint-disable-line @typescript-eslint/no-explicit-any
+          register={form.register}
+          setValue={form.setValue}
         />
       </Drawer>
     </div>

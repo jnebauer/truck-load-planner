@@ -50,6 +50,14 @@ export interface DataTableProps<T = Record<string, unknown>> {
   striped?: boolean;
   hoverable?: boolean;
   compact?: boolean;
+  // Server-side pagination props
+  serverSidePagination?: boolean;
+  currentPage?: number;
+  totalPages?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
+  onSearch?: (search: string) => void;
+  paginationLoading?: boolean;
 }
 
 export default function DataTable<T extends Record<string, unknown>>({
@@ -73,6 +81,14 @@ export default function DataTable<T extends Record<string, unknown>>({
   striped = true,
   hoverable = true,
   compact = false,
+  // Server-side pagination props
+  serverSidePagination = false,
+  currentPage: serverCurrentPage,
+  totalPages: serverTotalPages,
+  totalItems: serverTotalItems,
+  onPageChange,
+  onSearch,
+  paginationLoading = false,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{
@@ -82,61 +98,85 @@ export default function DataTable<T extends Record<string, unknown>>({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
 
+  // Use server-side pagination values if provided, otherwise use local state
+  const effectiveCurrentPage = serverSidePagination ? (serverCurrentPage || 1) : currentPage;
+  const effectiveTotalPages = serverSidePagination ? (serverTotalPages || 1) : Math.ceil(data.length / pageSize);
+  const effectiveTotalItems = serverSidePagination ? (serverTotalItems || 0) : data.length;
+
   // Get search keys
   const searchableKeys = searchKeys || columns.map(col => col.key);
 
-  // Filter data based on search term
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    
-    return data.filter((row) =>
-      searchableKeys.some((key) => {
-        const value = String(key).includes('.') 
-          ? String(key).split('.').reduce((obj: Record<string, unknown>, k) => obj?.[k] as Record<string, unknown>, row)
-          : row[key];
-        return String(value).toLowerCase().includes(searchTerm.toLowerCase());
-      })
-    );
-  }, [data, searchTerm, searchableKeys]);
+  // For server-side pagination, use data as-is. For client-side, filter and sort
+  const processedData = useMemo(() => {
+    if (serverSidePagination) {
+      return data; // Server already handled filtering, sorting, and pagination
+    }
 
-  // Sort data
-  const sortedData = useMemo(() => {
-    if (!sortConfig.key || !sortable) return filteredData;
+    // Client-side filtering
+    let filteredData = data;
+    if (searchTerm) {
+      filteredData = data.filter((row) =>
+        searchableKeys.some((key) => {
+          const value = String(key).includes('.') 
+            ? String(key).split('.').reduce((obj: Record<string, unknown>, k) => obj?.[k] as Record<string, unknown>, row)
+            : row[key];
+          return String(value).toLowerCase().includes(searchTerm.toLowerCase());
+        })
+      );
+    }
 
-    return [...filteredData].sort((a, b) => {
-      const aValue = String(sortConfig.key!).includes('.')
-        ? String(sortConfig.key!).split('.').reduce((obj: Record<string, unknown>, key) => obj?.[key] as Record<string, unknown>, a)
-        : a[sortConfig.key! as keyof T];
-      const bValue = String(sortConfig.key!).includes('.')
-        ? String(sortConfig.key!).split('.').reduce((obj: Record<string, unknown>, key) => obj?.[key] as Record<string, unknown>, b)
-        : b[sortConfig.key! as keyof T];
+    // Client-side sorting
+    if (sortConfig.key && sortable) {
+      filteredData = [...filteredData].sort((a, b) => {
+        const aValue = String(sortConfig.key!).includes('.')
+          ? String(sortConfig.key!).split('.').reduce((obj: Record<string, unknown>, key) => obj?.[key] as Record<string, unknown>, a)
+          : a[sortConfig.key! as keyof T];
+        const bValue = String(sortConfig.key!).includes('.')
+          ? String(sortConfig.key!).split('.').reduce((obj: Record<string, unknown>, key) => obj?.[key] as Record<string, unknown>, b)
+          : b[sortConfig.key! as keyof T];
 
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  }, [filteredData, sortConfig, sortable]);
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
 
-  // Paginate data
-  const paginatedData = useMemo(() => {
-    if (!pagination) return sortedData;
-    
-    const startIndex = (currentPage - 1) * pageSize;
-    return sortedData.slice(startIndex, startIndex + pageSize);
-  }, [sortedData, currentPage, pageSize, pagination]);
+    // Client-side pagination
+    if (pagination) {
+      const startIndex = (currentPage - 1) * pageSize;
+      return filteredData.slice(startIndex, startIndex + pageSize);
+    }
 
-  const totalPages = Math.ceil(sortedData.length / pageSize);
+    return filteredData;
+  }, [data, searchTerm, searchableKeys, sortConfig, sortable, pagination, currentPage, pageSize, serverSidePagination]);
+
+  const paginatedData = processedData;
 
   const handleSort = (key: string) => {
-    if (!sortable) return;
+    if (!sortable || serverSidePagination) return; // Disable sorting for server-side pagination
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value); // Always update local state to keep input value
+    if (serverSidePagination && onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(page);
+    } else {
+      setCurrentPage(page);
+    }
   };
 
   const getSortIcon = (key: string) => {
@@ -216,7 +256,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               type="text"
               placeholder={searchPlaceholder}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 pr-4 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
             />
           </div>
@@ -261,7 +301,16 @@ export default function DataTable<T extends Record<string, unknown>>({
             </tr>
           </thead>
           <tbody className={`bg-white divide-y divide-gray-200 ${striped ? 'divide-y' : ''}`}>
-            {paginatedData.length === 0 ? (
+            {paginationLoading ? (
+              <tr>
+                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-500 text-sm">Loading records...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)} className="px-6 py-12 text-center text-gray-500">
                   <div className="flex flex-col items-center">
@@ -358,30 +407,37 @@ export default function DataTable<T extends Record<string, unknown>>({
       </div>
 
       {/* Pagination */}
-      {pagination && totalPages > 1 && (
+      {pagination && effectiveTotalPages > 1 && (
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} entries
+              Showing {((effectiveCurrentPage - 1) * pageSize) + 1} to {Math.min(effectiveCurrentPage * pageSize, effectiveTotalItems)} of {effectiveTotalItems} entries
             </div>
             <div className="flex items-center space-x-2">
+              {paginationLoading && (
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Loading...</span>
+                </div>
+              )}
               <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
+                onClick={() => handlePageChange(effectiveCurrentPage - 1)}
+                disabled={effectiveCurrentPage === 1 || paginationLoading}
                 className="p-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               
               <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                {Array.from({ length: Math.min(5, effectiveTotalPages) }, (_, i) => {
                   const page = i + 1;
                   return (
                     <button
                       key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-2 text-sm rounded-md cursor-pointer ${
-                        currentPage === page
+                      onClick={() => handlePageChange(page)}
+                      disabled={paginationLoading}
+                      className={`px-3 py-2 text-sm rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        effectiveCurrentPage === page
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -393,8 +449,8 @@ export default function DataTable<T extends Record<string, unknown>>({
               </div>
 
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(effectiveCurrentPage + 1)}
+                disabled={effectiveCurrentPage === effectiveTotalPages || paginationLoading}
                 className="p-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronRight className="h-4 w-4" />

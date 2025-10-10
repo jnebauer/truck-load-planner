@@ -12,6 +12,7 @@ import { useRolesPermissions } from '@/hooks/dashboard';
 export default function RolesPermissionsPage() {
   const {
     loading,
+    paginationLoading,
     error,
     isFormOpen,
     editingRole,
@@ -25,6 +26,13 @@ export default function RolesPermissionsPage() {
     filteredRoles,
     roleStats,
     hasPermission,
+    // Pagination props
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    handlePageChange,
+    handleSearch,
   } = useRolesPermissions();
 
   // Check if user has permission to access this page
@@ -54,7 +62,7 @@ export default function RolesPermissionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <RolesPageHeader 
+      <RolesPageHeader
         hasPermission={hasPermission}
         onCreateRole={handleCreateRole}
       />
@@ -68,6 +76,13 @@ export default function RolesPermissionsPage() {
           roles={filteredRoles}
           onEditRole={handleEditRole}
           hasPermission={hasPermission}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          paginationLoading={paginationLoading}
+          onPageChange={handlePageChange}
+          onSearch={handleSearch}
         />
       </div>
 

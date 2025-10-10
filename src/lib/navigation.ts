@@ -163,7 +163,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     actions: {
       view: 'navigation.settings'
     }
-  }
+  },
+  
 ];
 
 // Helper function to filter navigation items based on user permissions

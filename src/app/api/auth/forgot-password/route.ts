@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -9,15 +10,18 @@ export async function POST(request: NextRequest) {
 
     if (!email) {
       return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
+        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.INVALID_EMAIL },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     const supabase = await createClient();
@@ -34,8 +38,8 @@ export async function POST(request: NextRequest) {
       // Return error for non-existent email
       return NextResponse.json({
         success: false,
-        error: 'No account found with this email address'
-      }, { status: 404 });
+        error: API_RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND
+      }, { status: HTTP_STATUS.NOT_FOUND });
     }
 
     // Generate reset token
@@ -54,8 +58,8 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating reset token:', updateError);
       return NextResponse.json(
-        { error: 'Failed to generate reset token' },
-        { status: 500 }
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'If an account with that email exists, we have sent a password reset link.',
+      message: API_RESPONSE_MESSAGES.SUCCESS.EMAIL_SENT,
       // Only include in development
       ...(process.env.NODE_ENV === 'development' && {
         resetUrl,
@@ -92,8 +96,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Forgot password error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 }

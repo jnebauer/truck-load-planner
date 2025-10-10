@@ -1,47 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
-import { TOAST_MESSAGES, TOAST_DESCRIPTIONS, VALIDATION_MESSAGES } from '@/constants';
-import { z } from 'zod';
-
-// Change Password Schema
-const changePasswordSchema = z.object({
-  currentPassword: z
-    .string()
-    .min(1, VALIDATION_MESSAGES.REQUIRED),
-  newPassword: z
-    .string()
-    .min(1, VALIDATION_MESSAGES.REQUIRED)
-    .min(8, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH)
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    ),
-  confirmPassword: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: VALIDATION_MESSAGES.PASSWORD_MISMATCH,
-  path: ["confirmPassword"],
-});
-
-// Profile Update Schema
-const profileUpdateSchema = z.object({
-  fullName: z
-    .string()
-    .min(1, VALIDATION_MESSAGES.REQUIRED)
-    .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
-    .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
-  phone: z
-    .string()
-    .optional()
-    .or(z.literal('')),
-});
-
-type ChangePasswordData = z.infer<typeof changePasswordSchema>;
-type ProfileUpdateData = z.infer<typeof profileUpdateSchema>;
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
+import { changePasswordSchema, profileUpdateSchema, ChangePasswordFormData, ProfileUpdateFormData } from '@/lib/validations';
 
 export const useSettings = () => {
   const { user, authenticatedFetch } = useAuth();
@@ -52,7 +17,7 @@ export const useSettings = () => {
   const [loading, setLoading] = useState(false);
 
   // Profile form
-  const profileForm = useForm<ProfileUpdateData>({
+  const profileForm = useForm<ProfileUpdateFormData>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
       fullName: user?.full_name || '',
@@ -61,7 +26,7 @@ export const useSettings = () => {
   });
 
   // Password form
-  const passwordForm = useForm<ChangePasswordData>({
+  const passwordForm = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
       currentPassword: '',
@@ -70,11 +35,40 @@ export const useSettings = () => {
     },
   });
 
-  const handleProfileUpdate = useCallback(async (data: ProfileUpdateData) => {
+  // Fetch latest user data and update form
+  const fetchLatestUserData = useCallback(async () => {
+    try {
+      const response = await authenticatedFetch('/api/user/profile');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.user) {
+          profileForm.setValue('fullName', result.user.full_name || '');
+          profileForm.setValue('phone', result.user.phone || '');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching latest user data:', error);
+    }
+  }, [authenticatedFetch, profileForm]);
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.setValue('fullName', user.full_name || '');
+      profileForm.setValue('phone', user.phone || '');
+    }
+  }, [user, profileForm]);
+
+  // Fetch latest data on component mount
+  useEffect(() => {
+    fetchLatestUserData();
+  }, [fetchLatestUserData]);
+
+  const handleProfileUpdate = useCallback(async (data: ProfileUpdateFormData) => {
     try {
       setLoading(true);
       
-      const response = await authenticatedFetch(`/api/dashboard/users/${user?.id}`, {
+      const response = await authenticatedFetch('/api/user/profile', {
         method: 'PUT',
         body: JSON.stringify({
           fullName: data.fullName,
@@ -85,25 +79,25 @@ export const useSettings = () => {
       const result = await response.json();
 
       if (response.ok) {
-        showToast.success(TOAST_MESSAGES.SUCCESS.USER_UPDATED, {
-          description: TOAST_DESCRIPTIONS.SUCCESS.USER_UPDATED(data.fullName)
-        });
+        showToast.success(TOAST_MESSAGES.SUCCESS.PROFILE_UPDATED);
+        
+        // Update form with the latest data from API response
+        if (result.user) {
+          profileForm.setValue('fullName', result.user.full_name || '');
+          profileForm.setValue('phone', result.user.phone || '');
+        }
       } else {
-        showToast.error(TOAST_MESSAGES.ERROR.USER_UPDATE_FAILED, {
-          description: result.error || TOAST_DESCRIPTIONS.ERROR.USER_UPDATE_FAILED
-        });
+        showToast.error(result.error || TOAST_MESSAGES.ERROR.USER_UPDATE_FAILED);
       }
     } catch (error) {
       console.error('Profile update error:', error);
-      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
-        description: TOAST_DESCRIPTIONS.ERROR.NETWORK_ERROR
-      });
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, authenticatedFetch]);
+  }, [authenticatedFetch, profileForm]);
 
-  const handlePasswordChange = useCallback(async (data: ChangePasswordData) => {
+  const handlePasswordChange = useCallback(async (data: ChangePasswordFormData) => {
     try {
       setLoading(true);
       
@@ -118,20 +112,14 @@ export const useSettings = () => {
       const result = await response.json();
 
       if (response.ok) {
-        showToast.success('Password Changed Successfully', {
-          description: 'Your password has been updated successfully.'
-        });
+        showToast.success(TOAST_MESSAGES.SUCCESS.PASSWORD_CHANGED);
         passwordForm.reset();
       } else {
-        showToast.error('Failed to Change Password', {
-          description: result.error || 'Please check your current password and try again.'
-        });
+        showToast.error(result.error || TOAST_MESSAGES.ERROR.PASSWORD_CHANGE_FAILED);
       }
     } catch (error) {
       console.error('Password change error:', error);
-      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
-        description: TOAST_DESCRIPTIONS.ERROR.NETWORK_ERROR
-      });
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
     } finally {
       setLoading(false);
     }

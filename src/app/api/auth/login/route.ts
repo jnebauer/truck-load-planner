@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair, JWTPayload } from '@/lib/jwt';
-import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,10 +40,17 @@ export async function POST(request: NextRequest) {
         )
       `)
       .eq('email', email.toLowerCase().trim())
-      .eq('status', 'active')
       .single();
 
     if (error || !user) {
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.INVALID_CREDENTIALS },
+        { status: HTTP_STATUS.UNAUTHORIZED }
+      );
+    }
+
+    // Check if user is active
+    if (user.status !== 'active') {
       return NextResponse.json(
         { error: API_RESPONSE_MESSAGES.ERROR.INVALID_CREDENTIALS },
         { status: HTTP_STATUS.UNAUTHORIZED }

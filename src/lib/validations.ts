@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VALIDATION_MESSAGES } from '@/constants';
+import { VALIDATION_MESSAGES } from '@/lib/backend/constants';
 
 // Login form validation schema
 export const loginSchema = z.object({
@@ -25,15 +25,15 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   password: z
     .string()
-    .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters')
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(8, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH_8)
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      VALIDATION_MESSAGES.PASSWORD_COMPLEXITY
     ),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
+  confirmPassword: z.string().min(1, VALIDATION_MESSAGES.PASSWORD_CONFIRM),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: VALIDATION_MESSAGES.PASSWORD_MISMATCH,
   path: ["confirmPassword"],
 });
 
@@ -76,25 +76,77 @@ export const userUpdateSchema = userSchema.extend({
     .optional(),
 });
 
-// Client form validation schema
-export const clientSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Client name is required')
-    .min(2, 'Client name must be at least 2 characters'),
+// User form validation schema (handles both create and update)
+export const userFormSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID),
+  password: z
+    .string()
+    .optional()
+    .refine((val) => {
+      // If password is provided, it must be at least 6 characters
+      if (val && val.trim() !== '') {
+        return val.length >= 6;
+      }
+      // If password is empty or undefined, it's valid (for updates)
+      return true;
+    }, {
+      message: VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH,
+    }),
+  fullName: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
+  phone: z
+    .string(),
+  role: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.ROLE_REQUIRED),
+  status: z.enum(['active', 'inactive', 'pending']),
+});
+
+// Settings validation schemas
+export const changePasswordSchema = z.object({
+  currentPassword: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED),
+  newPassword: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(8, VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH)
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      VALIDATION_MESSAGES.PASSWORD_COMPLEXITY
+    ),
+  confirmPassword: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: VALIDATION_MESSAGES.PASSWORD_MISMATCH,
+  path: ["confirmPassword"],
+});
+
+export const profileUpdateSchema = z.object({
+  fullName: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
   phone: z
     .string()
-    .min(1, 'Phone number is required')
-    .regex(/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number'),
-  address: z
-    .string()
-    .min(1, 'Address is required')
-    .min(10, 'Address must be at least 10 characters'),
-  status: z.enum(['active', 'inactive']).optional(),
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => {
+      // If phone is empty or undefined, it's valid
+      if (!val || val.trim() === '') {
+        return true;
+      }
+      // If phone is provided, it must contain only numbers
+      return /^\d+$/.test(val);
+    }, {
+      message: VALIDATION_MESSAGES.PHONE_NUMBERS_ONLY,
+    }),
 });
 
 // Type exports
@@ -104,4 +156,5 @@ export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type UserFormData = z.infer<typeof userSchema>;
 export type UserCreateFormData = z.infer<typeof userCreateSchema>;
 export type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
-export type ClientFormData = z.infer<typeof clientSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;

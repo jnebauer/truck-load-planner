@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
-import { TOAST_MESSAGES, TOAST_DESCRIPTIONS } from '@/constants';
-import { userSchema, userCreateSchema, userUpdateSchema, UserFormData } from '@/lib/validations';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
+import { userFormSchema } from '@/lib/validations';
 import { User, Role } from '@/components/dashboard/users';
+import { UserFormType } from '@/components/dashboard/users/formTypes';
 
 export function useUsers() {
   const { hasPermission, authenticatedFetch } = useAuth();
@@ -17,10 +18,24 @@ export function useUsers() {
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [paginationLoading, setPaginationLoading] = useState(false);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    pendingUsers: 0
+  });
 
   // Form for user creation/editing
-  const form = useForm<UserFormData>({
-    resolver: zodResolver(userSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  const form = useForm<UserFormType>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       email: '',
       password: '',
@@ -30,30 +45,6 @@ export function useUsers() {
       status: 'active',
     },
   });
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await authenticatedFetch('/api/dashboard/users');
-      const data = await response.json();
-
-      if (response.ok) {
-        setUsers(data.users);
-      } else {
-        setError(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
-        showToast.error(TOAST_MESSAGES.ERROR.USER_FETCH_FAILED, {
-          description: data.error || TOAST_DESCRIPTIONS.ERROR.USER_FETCH_FAILED
-        });
-      }
-    } catch {
-      setError(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
-      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
-        description: TOAST_DESCRIPTIONS.ERROR.NETWORK_ERROR
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [authenticatedFetch]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -71,9 +62,43 @@ export function useUsers() {
   }, [authenticatedFetch]);
 
   useEffect(() => {
-    fetchUsers();
+    const initialLoad = async () => {
+      try {
+        setLoading(true);
+        
+        // Build query parameters for initial load
+        const params = new URLSearchParams({
+          page: '1',
+          limit: itemsPerPage.toString(),
+        });
+        
+        const response = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setUsers(data.users);
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.totalItems);
+          setCurrentPage(data.pagination.currentPage);
+          // Update stats from API response
+          if (data.stats) {
+            setStats(data.stats);
+          }
+        } else {
+          setError(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+          showToast.error(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+        }
+      } catch {
+        setError(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+        showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialLoad();
     fetchRoles();
-  }, [fetchUsers, fetchRoles]);
+  }, [authenticatedFetch, itemsPerPage, fetchRoles]); // Only depend on authenticatedFetch and itemsPerPage
 
   const handleCreateUser = useCallback(() => {
     setEditingUser(null);
@@ -105,18 +130,21 @@ export function useUsers() {
   );
 
   const handleFormSubmit = useCallback(
-    async (data: UserFormData) => {
+    async (data: UserFormType) => {
       try {
-        // Choose validation schema based on whether we're editing or creating
-        const validationSchema = editingUser ? userUpdateSchema : userCreateSchema;
+        // Custom validation: Password is required for create, optional for update
+        if (!editingUser && (!data.password || data.password.trim() === '')) {
+          showToast.error('Password is required when creating a new user');
+          return;
+        }
         
         // For updates, remove password if empty
         if (editingUser && (!data.password || data.password.trim() === '')) {
           delete data.password;
         }
         
-        // Validate data with appropriate schema
-        const validatedData = validationSchema.parse(data);
+        // Validate data with userFormSchema
+        const validatedData = userFormSchema.parse(data);
         
         const url = editingUser
           ? `/api/dashboard/users/${editingUser.id}`
@@ -134,22 +162,45 @@ export function useUsers() {
           setIsFormOpen(false);
           setEditingUser(null);
           form.reset();
-          await fetchUsers();
+          
+          // Refresh the users list
+          try {
+            setLoading(true);
+            
+            const params = new URLSearchParams({
+              page: currentPage.toString(),
+              limit: itemsPerPage.toString(),
+            });
+            
+            if (searchTerm) {
+              params.append('search', searchTerm);
+            }
+            
+            const refreshResponse = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+            const refreshData = await refreshResponse.json();
+
+            if (refreshResponse.ok) {
+              setUsers(refreshData.users);
+              setTotalPages(refreshData.pagination.totalPages);
+              setTotalItems(refreshData.pagination.totalItems);
+              setCurrentPage(refreshData.pagination.currentPage);
+            }
+          } catch {
+            // If refresh fails, just show success message
+            console.warn('Failed to refresh users list after form submission');
+          } finally {
+            setLoading(false);
+          }
           
           // Show success toast
           if (editingUser) {
-            showToast.success(TOAST_MESSAGES.SUCCESS.USER_UPDATED, {
-              description: TOAST_DESCRIPTIONS.SUCCESS.USER_UPDATED(validatedData.fullName)
-            });
+              showToast.success(TOAST_MESSAGES.SUCCESS.USER_UPDATED);
           } else {
-            showToast.success(TOAST_MESSAGES.SUCCESS.USER_CREATED, {
-              description: TOAST_DESCRIPTIONS.SUCCESS.USER_CREATED(validatedData.fullName)
-            });
+            showToast.success(TOAST_MESSAGES.SUCCESS.USER_CREATED);
           }
         } else {
           // Handle different types of errors
           let errorMessage = editingUser ? TOAST_MESSAGES.ERROR.USER_UPDATE_FAILED : TOAST_MESSAGES.ERROR.USER_CREATE_FAILED;
-          let errorDescription = editingUser ? TOAST_DESCRIPTIONS.ERROR.USER_UPDATE_FAILED : TOAST_DESCRIPTIONS.ERROR.USER_CREATE_FAILED;
           
           if (result.error) {
             if (typeof result.error === 'string') {
@@ -160,29 +211,23 @@ export function useUsers() {
           }
           
           if (result.details) {
-            errorDescription = result.details;
+            errorMessage = result.details;
           }
           
-          showToast.error(errorMessage, {
-            description: errorDescription
-          });
+          showToast.error(errorMessage);
         }
       } catch (error) {
         console.error('Error saving user:', error);
         
         // Handle Zod validation errors
         if (error instanceof Error && error.name === 'ZodError') {
-          showToast.error(TOAST_MESSAGES.ERROR.VALIDATION_FAILED, {
-            description: TOAST_DESCRIPTIONS.ERROR.VALIDATION_FAILED
-          });
+          showToast.error(TOAST_MESSAGES.ERROR.VALIDATION_FAILED);
         } else {
-          showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
-            description: TOAST_DESCRIPTIONS.ERROR.NETWORK_ERROR
-          });
+          showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
         }
       }
     },
-    [editingUser, form, fetchUsers, authenticatedFetch]
+    [editingUser, form, authenticatedFetch, currentPage, itemsPerPage, searchTerm]
   );
 
   const handleFormClose = useCallback(() => {
@@ -191,15 +236,127 @@ export function useUsers() {
     form.reset();
   }, [form]);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const totalUsers = users.length;
-    const activeUsers = users.filter((u) => u.status === 'active').length;
-    const inactiveUsers = users.filter((u) => u.status === 'inactive').length;
-    const pendingUsers = users.filter((u) => u.status === 'pending').length;
+  // Pagination handlers
+  const handlePageChange = useCallback(async (page: number) => {
+    setCurrentPage(page);
+    
+    try {
+      setPaginationLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      const response = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+      const data = await response.json();
 
-    return { totalUsers, activeUsers, inactiveUsers, pendingUsers };
-  }, [users]);
+      if (response.ok) {
+        setUsers(data.users);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+        setCurrentPage(data.pagination.currentPage);
+        // Update stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } else {
+        setError(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+        showToast.error(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+      }
+    } catch {
+      setError(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+    } finally {
+      setPaginationLoading(false);
+    }
+  }, [authenticatedFetch, itemsPerPage, searchTerm]);
+
+  const handleSearch = useCallback(async (search: string) => {
+    setSearchTerm(search);
+    setCurrentPage(1); // Reset to first page when searching
+    
+    try {
+      setPaginationLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: '1',
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (search) {
+        params.append('search', search);
+      }
+      
+      const response = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsers(data.users);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+        setCurrentPage(data.pagination.currentPage);
+        // Update stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } else {
+        setError(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+        showToast.error(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+      }
+    } catch {
+      setError(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+    } finally {
+      setPaginationLoading(false);
+    }
+  }, [authenticatedFetch, itemsPerPage]);
+
+  const refreshUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      const response = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsers(data.users);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+        setCurrentPage(data.pagination.currentPage);
+        // Update stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } else {
+        setError(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+        showToast.error(data.error || TOAST_MESSAGES.ERROR.USER_FETCH_FAILED);
+      }
+    } catch {
+      setError(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+    } finally {
+      setLoading(false);
+    }
+  }, [authenticatedFetch, itemsPerPage, searchTerm, currentPage]);
+
+  // Stats are now managed by state and updated from API response
 
   return {
     // Data
@@ -209,9 +366,17 @@ export function useUsers() {
     
     // State
     loading,
+    paginationLoading,
     error,
     isFormOpen,
     editingUser,
+    
+    // Pagination
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    searchTerm,
     
     // Form
     form,
@@ -221,7 +386,9 @@ export function useUsers() {
     handleEditUser,
     handleFormSubmit,
     handleFormClose,
-    fetchUsers,
+    handlePageChange,
+    handleSearch,
+    refreshUsers,
     
     // Permissions
     hasPermission,

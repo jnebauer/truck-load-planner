@@ -1,81 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useResetPassword } from '@/hooks/auth';
-import { resetPasswordSchema, ResetPasswordFormData } from '@/lib/validations';
-import { TOAST_MESSAGES } from '@/constants';
-import { Eye, EyeOff, Truck, Package, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useResetPassword } from '@/hooks/auth';
+import { Eye, EyeOff, Truck, Package, CheckCircle } from 'lucide-react';
 
 export default function ResetPasswordPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [token, setToken] = useState('');
+  const {
+    loading,
+    verifying,
+    showPassword,
+    setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
+    error,
+    success,
+    userEmail,
+    token,
+    form,
+    handleSubmit,
+  } = useResetPassword();
 
-  const router = useRouter();
-  const { loading, verifying, verifyResetToken, resetPassword } = useResetPassword();
-
-  // Initialize react-hook-form with Zod validation
   const {
     register,
-    handleSubmit,
     formState: { errors },
-  } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      password: '',
-      confirmPassword: '',
-    },
-  });
-
-  useEffect(() => {
-    // Get token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenParam = urlParams.get('token');
-    
-    if (!tokenParam) {
-      setError(TOAST_MESSAGES.ERROR.NOT_FOUND);
-      return;
-    }
-
-    setToken(tokenParam);
-
-    // Verify token
-    const verifyToken = async () => {
-      const { error, valid, email } = await verifyResetToken(tokenParam);
-      if (error || !valid) {
-        setError(error?.message || TOAST_MESSAGES.ERROR.UNAUTHORIZED);
-      } else {
-        setUserEmail(email || '');
-      }
-    };
-
-    verifyToken();
-  }, [verifyResetToken]);
-
-  const onSubmit = async (data: ResetPasswordFormData) => {
-    setError('');
-
-    try {
-      const { error } = await resetPassword({ token, password: data.password });
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
-      }
-    } catch {
-      setError(TOAST_MESSAGES.ERROR.SERVER_ERROR);
-    }
-  };
+  } = form;
 
   if (verifying) {
     return (
@@ -174,9 +122,15 @@ export default function ResetPasswordPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-6"
+            onSubmit={form.handleSubmit(handleSubmit)}
+          >
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 New Password
               </label>
               <div className="mt-1 relative">
@@ -202,12 +156,17 @@ export default function ResetPasswordPage() {
                 </span>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Confirm New Password
               </label>
               <div className="mt-1 relative">
@@ -217,7 +176,9 @@ export default function ResetPasswordPage() {
                   autoComplete="new-password"
                   {...register('confirmPassword')}
                   className={`appearance-none block w-full px-3 py-2 border text-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10 ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                    errors.confirmPassword
+                      ? 'border-red-300'
+                      : 'border-gray-300'
                   }`}
                   placeholder="Confirm your new password"
                 />
@@ -233,7 +194,9 @@ export default function ResetPasswordPage() {
                 </span>
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
               )}
             </div>
 

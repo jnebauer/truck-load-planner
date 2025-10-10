@@ -1,41 +1,33 @@
 'use client';
 
 import React from 'react';
-import { Save, User, Mail, Lock, Phone, Shield, Eye, EyeOff } from 'lucide-react';
+import {
+  Save,
+  User as UserIcon,
+  Mail,
+  Lock,
+  Phone,
+  Shield,
+  Eye,
+  EyeOff,
+  RefreshCw,
+} from 'lucide-react';
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
-
-interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  role: string;
-  phone?: string;
-  status: 'active' | 'inactive' | 'pending';
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface UserFormData {
-  email: string;
-  password: string;
-  fullName: string;
-  phone: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending';
-}
+import { User, Role } from './types';
+import { UserFormType } from './formTypes';
+import { generateSecurePassword } from '@/lib/password-utils';
 
 interface UserFormProps {
   editingUser: User | null;
   roles: Role[];
-  onSubmit: (e?: React.BaseSyntheticEvent<object, unknown, unknown>) => Promise<void>;
+  onSubmit: (
+    e?: React.BaseSyntheticEvent<object, unknown, unknown>
+  ) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
-  errors: FieldErrors<UserFormData>;
-  register: UseFormRegister<UserFormData>;
+  errors: FieldErrors<UserFormType>;
+  register: UseFormRegister<UserFormType>;
+  setValue: (name: keyof UserFormType, value: string) => void;
 }
 
 export default function UserForm({
@@ -45,9 +37,15 @@ export default function UserForm({
   onClose,
   isSubmitting,
   errors,
-  register
+  register,
+  setValue,
 }: UserFormProps) {
   const [showPassword, setShowPassword] = React.useState(false);
+
+  const handleGeneratePassword = () => {
+    const randomPassword = generateSecurePassword();
+    setValue('password', randomPassword);
+  };
 
   return (
     <form onSubmit={onSubmit} className="flex-1 flex flex-col">
@@ -59,13 +57,7 @@ export default function UserForm({
             Email Address *
           </label>
           <input
-            {...register('email', { 
-              required: 'Email is required',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address'
-              }
-            })}
+            {...register('email')}
             type="email"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter email address"
@@ -79,35 +71,45 @@ export default function UserForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Lock className="inline h-4 w-4 mr-1" />
-            Password *
+            Password {!editingUser ? '*' : ''}
           </label>
           <div className="relative">
             <input
-              {...register('password', { 
-                required: editingUser ? false : 'Password is required',
-                minLength: {
-                  value: 6,
-                  message: 'Password must be at least 6 characters'
-                }
-              })}
+              {...register('password')}
               type={showPassword ? 'text' : 'password'}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={editingUser ? "Leave blank to keep current password" : "Enter password"}
+              className="w-full px-3 py-2 pr-20 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={
+                editingUser
+                  ? 'Leave blank to keep current password'
+                  : 'Enter password'
+              }
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4 text-gray-400" />
-              ) : (
-                <Eye className="h-4 w-4 text-gray-400" />
-              )}
-            </button>
+            <div className="absolute inset-y-0 right-0 flex items-center">
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                className="px-2 py-1 mr-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                title="Generate random password"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="px-2 py-1 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.password.message}
+            </p>
           )}
           {editingUser && (
             <p className="mt-1 text-xs text-gray-500">
@@ -119,17 +121,19 @@ export default function UserForm({
         {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            <User className="inline h-4 w-4 mr-1" />
+            <UserIcon className="inline h-4 w-4 mr-1" />
             Full Name *
           </label>
           <input
-            {...register('fullName', { required: 'Full name is required' })}
+            {...register('fullName')}
             type="text"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter full name"
           />
           {errors.fullName && (
-            <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.fullName.message}
+            </p>
           )}
         </div>
 
@@ -140,12 +144,7 @@ export default function UserForm({
             Phone Number
           </label>
           <input
-            {...register('phone', {
-              pattern: {
-                value: /^[\+]?[1-9][\d]{0,15}$/,
-                message: 'Invalid phone number'
-              }
-            })}
+            {...register('phone')}
             type="tel"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter phone number"
@@ -162,7 +161,7 @@ export default function UserForm({
             Role *
           </label>
           <select
-            {...register('role', { required: 'Role is required' })}
+            {...register('role')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Select a role</option>

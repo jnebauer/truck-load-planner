@@ -9,12 +9,27 @@ interface UsersDataTableProps {
   users: User[];
   onEditUser: (user: User) => void;
   hasPermission: (permission: string) => boolean;
+  // Pagination props
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  paginationLoading: boolean;
+  onPageChange: (page: number) => void;
+  onSearch: (search: string) => void;
 }
 
 export default function UsersDataTable({
   users,
   onEditUser,
   hasPermission,
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  paginationLoading,
+  onPageChange,
+  onSearch,
 }: UsersDataTableProps) {
   // Memoize columns for DataTable
   const columns: Column<User>[] = useMemo(() => [
@@ -111,6 +126,15 @@ export default function UsersDataTable({
       actions={actions}
       searchPlaceholder="Search users..."
       emptyMessage="No users found"
+      // Server-side pagination props
+      serverSidePagination={true}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      pageSize={itemsPerPage}
+      paginationLoading={paginationLoading}
+      onPageChange={onPageChange}
+      onSearch={onSearch}
     />
   );
 }

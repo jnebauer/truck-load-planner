@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
 import { sendUserCreatedEmail } from '@/lib/email';
-import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import bcrypt from 'bcryptjs';
 
 interface UserWithClients {
@@ -38,9 +38,26 @@ export async function GET(request: NextRequest) {
       }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
+    // Get pagination parameters from query string
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.VALIDATION_ERROR 
+      }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
     const supabase = await createClient();
 
-    const usersQuery = supabase
+    // Calculate offset
+    const offset = (page - 1) * limit;
+
+    // Build query with pagination
+    let usersQuery = supabase
       .from('users')
       .select(`
         *,
@@ -49,12 +66,55 @@ export async function GET(request: NextRequest) {
           name,
           description
         )
-      `);
+      `, { count: 'exact' });
 
-    const { data: users, error } = await usersQuery;
+    // Add search filter if provided
+    if (search) {
+      usersQuery = usersQuery.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    // Add pagination
+    usersQuery = usersQuery
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data: users, error, count } = await usersQuery;
 
     if (error) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Get total counts by status (without search filter)
+    const { data: statusCounts, error: statusError, count: totalCount } = await supabase
+      .from('users')
+      .select('status', { count: 'exact' });
+
+    if (statusError) {
+      console.error('Error getting status counts:', statusError);
+    }
+
+    // Calculate status counts
+    const stats = {
+      totalUsers: totalCount || 0, // Use total count, not filtered count
+      activeUsers: 0,
+      inactiveUsers: 0,
+      pendingUsers: 0
+    };
+
+    if (statusCounts) {
+      statusCounts.forEach((item: { status: string }) => {
+        switch (item.status) {
+          case 'active':
+            stats.activeUsers++;
+            break;
+          case 'inactive':
+            stats.inactiveUsers++;
+            break;
+          case 'pending':
+            stats.pendingUsers++;
+            break;
+        }
+      });
     }
 
     // Transform the data to include role name
@@ -63,7 +123,23 @@ export async function GET(request: NextRequest) {
       role: user.roles?.name || 'client_viewer'
     }));
 
-    return NextResponse.json({ users: transformedUsers });
+    // Calculate pagination info
+    const totalPages = Math.ceil((count || 0) / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json({ 
+      users: transformedUsers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: count || 0,
+        itemsPerPage: limit,
+        hasNextPage,
+        hasPrevPage
+      },
+      stats
+    });
   } catch (error) {
     console.error('Error in GET /api/users:', error);
     return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
@@ -98,6 +174,19 @@ export async function POST(request: NextRequest) {
     // Only admin can create admin users
     if (role === 'admin' && user.role !== 'admin') {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS }, { status: HTTP_STATUS.FORBIDDEN });
+    }
+
+    // Check if email already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_EMAIL 
+      }, { status: HTTP_STATUS.CONFLICT });
     }
 
     // Get role_id from role name

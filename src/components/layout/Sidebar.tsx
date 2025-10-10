@@ -68,7 +68,7 @@ export default function Sidebar({ user }: SidebarProps) {
               {item.href && !item.submenu ? (
                 // Direct link for items without submenu
                 <Link
-                  href={''}
+                  href={item.href}
                   className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
                     active
                       ? 'bg-gray-100 text-gray-900 border-r-2 border-blue-500'

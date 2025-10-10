@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
-import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import bcrypt from 'bcryptjs';
 
 export async function PUT(
@@ -35,6 +35,20 @@ export async function PUT(
 
     if (!email || !fullName || !role) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
+    // Check if email already exists for a different user
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .neq('id', userId)
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_EMAIL 
+      }, { status: HTTP_STATUS.CONFLICT });
     }
 
     // Get role_id from role name

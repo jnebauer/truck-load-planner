@@ -1,7 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { showToast } from '@/lib/toast';
+import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/validations';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
 interface ResetPasswordData {
   token: string;
@@ -22,6 +27,22 @@ interface VerifyTokenResponse {
 export const useResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [token, setToken] = useState('');
+  const router = useRouter();
+
+  // Form setup
+  const form = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   const verifyResetToken = useCallback(async (token: string): Promise<VerifyTokenResponse> => {
     try {
@@ -39,11 +60,11 @@ export const useResetPassword = () => {
         result = await response.json();
       } catch (jsonError) {
         console.error('JSON parsing error:', jsonError);
-        return { error: new Error('Invalid response from server'), valid: false };
+        return { error: new Error(TOAST_MESSAGES.ERROR.NETWORK_ERROR), valid: false };
       }
 
       if (!response.ok) {
-        const errorMessage = result.error || 'Invalid or expired reset token';
+        const errorMessage = result.error || TOAST_MESSAGES.ERROR.UNAUTHORIZED;
         return { error: new Error(errorMessage), valid: false };
       }
 
@@ -53,7 +74,7 @@ export const useResetPassword = () => {
         email: result.email 
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to verify reset token';
+      const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.SERVER_ERROR;
       return { error: new Error(errorMessage), valid: false };
     } finally {
       setVerifying(false);
@@ -77,40 +98,98 @@ export const useResetPassword = () => {
         result = await response.json();
       } catch (jsonError) {
         console.error('JSON parsing error:', jsonError);
-        const errorMessage = 'Invalid response from server';
-        showToast.error('Password Reset Failed', {
+        const errorMessage = TOAST_MESSAGES.ERROR.NETWORK_ERROR;
+        showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
           description: errorMessage
         });
         return { error: new Error(errorMessage), message: '' };
       }
 
       if (!response.ok) {
-        const errorMessage = result.error || 'Failed to reset password';
-        showToast.error('Password Reset Failed', {
+        const errorMessage = result.error || TOAST_MESSAGES.ERROR.NETWORK_ERROR;
+        showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
           description: errorMessage
         });
         return { error: new Error(errorMessage), message: '' };
       }
 
-      showToast.success('Password Reset Successfully', {
+      showToast.success(TOAST_MESSAGES.SUCCESS.PASSWORD_RESET, {
         description: result.message || 'Your password has been updated successfully.'
       });
 
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+
       return { error: null, message: result.message || 'Password reset successfully' };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      showToast.error('Password Reset Failed', {
+      const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.SERVER_ERROR;
+      showToast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR, {
         description: errorMessage
       });
       return { error: new Error(errorMessage), message: '' };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
+
+  // Initialize token from URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      
+      if (!tokenParam) {
+        setError(TOAST_MESSAGES.ERROR.NOT_FOUND);
+        return;
+      }
+
+      setToken(tokenParam);
+
+      // Verify token
+      const verifyToken = async () => {
+        const { error, valid, email } = await verifyResetToken(tokenParam);
+        if (error || !valid) {
+          setError(error?.message || TOAST_MESSAGES.ERROR.UNAUTHORIZED);
+        } else {
+          setUserEmail(email || '');
+        }
+      };
+
+      verifyToken();
+    }
+  }, [verifyResetToken]);
+
+  // Handle form submission
+  const handleSubmit = useCallback(async (data: ResetPasswordFormData) => {
+    setError('');
+
+    try {
+      const { error } = await resetPassword({ token, password: data.password });
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess(true);
+      }
+    } catch {
+      setError(TOAST_MESSAGES.ERROR.SERVER_ERROR);
+    }
+  }, [resetPassword, token]);
 
   return {
     loading,
     verifying,
+    showPassword,
+    setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
+    error,
+    success,
+    userEmail,
+    token,
+    form,
+    handleSubmit,
     verifyResetToken,
     resetPassword
   };

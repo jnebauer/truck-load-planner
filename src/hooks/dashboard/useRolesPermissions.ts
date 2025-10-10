@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
-import { TOAST_MESSAGES, TOAST_DESCRIPTIONS } from '@/constants';
-import { Role, RoleFormData, calculateRoleStats } from '@/lib/permissions';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
+import { Role, RoleFormData } from '@/lib/permissions';
 import { getAllPermissionsByCategory, validateRolePermissions } from '@/lib/role-utils';
 
 export const useRolesPermissions = () => {
@@ -15,6 +15,20 @@ export const useRolesPermissions = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [paginationLoading, setPaginationLoading] = useState(false);
+  const [stats, setStats] = useState({
+    totalRoles: 0,
+    activeRoles: 0,
+    inactiveRoles: 0,
+    totalPermissions: 0
+  });
 
   const form = useForm<RoleFormData>({
     defaultValues: {
@@ -32,29 +46,53 @@ export const useRolesPermissions = () => {
   };
 
   // Fetch roles
-  const fetchRoles = useCallback(async () => {
+  const fetchRoles = useCallback(async (page = currentPage, search = searchTerm, showPaginationLoading = false) => {
     try {
-      setLoading(true);
+      if (showPaginationLoading) {
+        setPaginationLoading(true);
+      } else {
+        setLoading(true);
+      }
+      
       const tokens = getAuthToken();
-      const response = await fetch('/api/dashboard/roles-permissions', {
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (search) {
+        params.append('search', search);
+      }
+      
+      const response = await fetch(`/api/dashboard/roles-permissions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${tokens?.accessToken || ''}`,
           'Content-Type': 'application/json',
         },
       });
+      
       if (!response.ok) throw new Error('Failed to fetch roles');
+      
       const data = await response.json();
       setRoles(data.roles || []);
+      setTotalPages(data.pagination.totalPages);
+      setTotalItems(data.pagination.totalItems);
+      setCurrentPage(data.pagination.currentPage);
+      // Update stats from API response
+      if (data.stats) {
+        setStats(data.stats);
+      }
     } catch (error) {
       console.error('Error fetching roles:', error);
       setError(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
-      showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED, {
-        description: TOAST_DESCRIPTIONS.ERROR.ROLE_FETCH_FAILED
-      });
+      showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
     } finally {
       setLoading(false);
+      setPaginationLoading(false);
     }
-  }, []);
+  }, [currentPage, searchTerm, itemsPerPage]);
 
   // Create role
   const createRole = useCallback(async (data: RoleFormData) => {
@@ -76,19 +114,15 @@ export const useRolesPermissions = () => {
 
       const result = await response.json();
       setRoles(prev => [...prev, result.role]);
-      showToast.success(TOAST_MESSAGES.SUCCESS.ROLE_CREATED, {
-        description: TOAST_DESCRIPTIONS.SUCCESS.ROLE_CREATED(result.role.name)
-      });
+      showToast.success(TOAST_MESSAGES.SUCCESS.ROLE_CREATED);
 
       setIsFormOpen(false);
       setEditingRole(null);
       form.reset();
     } catch (error) {
       console.error('Error creating role:', error);
-      const errorMessage = error instanceof Error ? error.message : TOAST_DESCRIPTIONS.ERROR.ROLE_CREATE_FAILED;
-      showToast.error(TOAST_MESSAGES.ERROR.ROLE_CREATE_FAILED, {
-        description: errorMessage
-      });
+      const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.ROLE_CREATE_FAILED;
+      showToast.error(errorMessage);
     }
   }, [form]);
 
@@ -114,26 +148,153 @@ export const useRolesPermissions = () => {
       setRoles(prev => prev.map(role => 
         role.id === roleId ? result.role : role
       ));
-      showToast.success(TOAST_MESSAGES.SUCCESS.ROLE_UPDATED, {
-        description: TOAST_DESCRIPTIONS.SUCCESS.ROLE_UPDATED(result.role.name)
-      });
+      showToast.success(TOAST_MESSAGES.SUCCESS.ROLE_UPDATED);
 
       setIsFormOpen(false);
       setEditingRole(null);
       form.reset();
     } catch (error) {
       console.error('Error updating role:', error);
-      const errorMessage = error instanceof Error ? error.message : TOAST_DESCRIPTIONS.ERROR.ROLE_UPDATE_FAILED;
-      showToast.error(TOAST_MESSAGES.ERROR.ROLE_UPDATE_FAILED, {
-        description: errorMessage
-      });
+      const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.ROLE_UPDATE_FAILED;
+      showToast.error(errorMessage);
     }
   }, [form]);
 
   // Refresh data
   const refreshData = useCallback(async () => {
-    await fetchRoles();
-  }, [fetchRoles]);
+    try {
+      setLoading(true);
+      
+      const tokens = getAuthToken();
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      const response = await fetch(`/api/dashboard/roles-permissions?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken || ''}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch roles');
+      
+      const data = await response.json();
+      setRoles(data.roles || []);
+      setTotalPages(data.pagination.totalPages);
+      setTotalItems(data.pagination.totalItems);
+      setCurrentPage(data.pagination.currentPage);
+      // Update stats from API response
+      if (data.stats) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setError(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+      showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchTerm, itemsPerPage]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback(async (page: number) => {
+    setCurrentPage(page);
+    
+    try {
+      setPaginationLoading(true);
+      
+      const tokens = getAuthToken();
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      const response = await fetch(`/api/dashboard/roles-permissions?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken || ''}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch roles');
+      
+      const data = await response.json();
+      setRoles(data.roles || []);
+      setTotalPages(data.pagination.totalPages);
+      setTotalItems(data.pagination.totalItems);
+      setCurrentPage(data.pagination.currentPage);
+      // Update stats from API response
+      if (data.stats) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setError(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+      showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+    } finally {
+      setPaginationLoading(false);
+    }
+  }, [itemsPerPage, searchTerm]);
+
+  const handleSearch = useCallback(async (search: string) => {
+    setSearchTerm(search);
+    setCurrentPage(1); // Reset to first page when searching
+    
+    try {
+      setPaginationLoading(true);
+      
+      const tokens = getAuthToken();
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: '1',
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (search) {
+        params.append('search', search);
+      }
+      
+      const response = await fetch(`/api/dashboard/roles-permissions?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken || ''}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch roles');
+      
+      const data = await response.json();
+      setRoles(data.roles || []);
+      setTotalPages(data.pagination.totalPages);
+      setTotalItems(data.pagination.totalItems);
+      setCurrentPage(data.pagination.currentPage);
+      // Update stats from API response
+      if (data.stats) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setError(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+      showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+    } finally {
+      setPaginationLoading(false);
+    }
+  }, [itemsPerPage]);
 
   // Handle create role
   const handleCreateRole = useCallback(() => {
@@ -180,10 +341,8 @@ export const useRolesPermissions = () => {
         await refreshData();
       } catch (error) {
         console.error('Error saving role:', error);
-        const errorMessage = error instanceof Error ? error.message : TOAST_DESCRIPTIONS.ERROR.SAVE_FAILED;
-        showToast.error(TOAST_MESSAGES.ERROR.SAVE_FAILED, {
-          description: errorMessage
-        });
+        const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.SAVE_FAILED;
+        showToast.error(errorMessage);
       }
     },
     [editingRole, form, createRole, updateRole, refreshData]
@@ -220,23 +379,67 @@ export const useRolesPermissions = () => {
     []
   );
 
-  // Memoize role stats
-  const roleStats = useMemo(
-    () => calculateRoleStats(filteredRoles),
-    [filteredRoles]
-  );
+  // Memoize role stats (using totalItems from server for accurate counts)
+  // Stats are now managed by state and updated from API response
 
   useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+    const initialLoad = async () => {
+      try {
+        setLoading(true);
+        
+        const tokens = getAuthToken();
+        
+        // Build query parameters for initial load
+        const params = new URLSearchParams({
+          page: '1',
+          limit: itemsPerPage.toString(),
+        });
+        
+        const response = await fetch(`/api/dashboard/roles-permissions?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${tokens?.accessToken || ''}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch roles');
+        
+        const data = await response.json();
+        setRoles(data.roles || []);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+        setCurrentPage(data.pagination.currentPage);
+        // Update stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+        setError(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+        showToast.error(TOAST_MESSAGES.ERROR.ROLE_FETCH_FAILED);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialLoad();
+  }, [itemsPerPage]); // Only depend on itemsPerPage
 
   return {
     // State
     roles,
     loading,
+    paginationLoading,
     error,
     isFormOpen,
     editingRole,
+    
+    // Pagination
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    searchTerm,
     
     // Form
     form,
@@ -244,7 +447,7 @@ export const useRolesPermissions = () => {
     // Computed values
     filteredRoles,
     permissionsByCategory,
-    roleStats,
+    roleStats: stats,
     
     // Actions
     fetchRoles,
@@ -256,6 +459,8 @@ export const useRolesPermissions = () => {
     handleFormSubmit,
     handleFormClose,
     togglePermission,
+    handlePageChange,
+    handleSearch,
     hasPermission
   };
 };

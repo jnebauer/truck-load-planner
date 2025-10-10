@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
-import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/api-constants';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
