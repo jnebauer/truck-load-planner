@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -9,12 +12,21 @@ import { showToast } from '@/lib/toast';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * Login request data
+ */
 interface LoginData {
   email: string;
   password: string;
   rememberMe?: boolean;
 }
 
+/**
+ * Login response data
+ */
 interface LoginResponse {
   error: Error | null;
   user?: {
@@ -26,6 +38,14 @@ interface LoginResponse {
   };
 }
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for handling user login functionality
+ * Manages authentication, form state, and navigation after login
+ * @returns Object with loading state, form handlers, and sign-in function
+ */
 export const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
+/**
+ * GET /api/user/profile
+ * Get current user's profile information from database
+ */
 export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated
@@ -48,13 +52,17 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ user: transformedUser });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.error('Error in GET /api/user/profile:', error);
     return NextResponse.json({ 
       error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR 
     }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }
 
+/**
+ * PUT /api/user/profile
+ * Update current user's profile information
+ */
 export async function PUT(request: NextRequest) {
   try {
     // Check if user is authenticated
@@ -101,7 +109,7 @@ export async function PUT(request: NextRequest) {
       user: updatedUser 
     });
   } catch (error) {
-    console.error('Error updating profile:', error);
+    console.error('Error in PUT /api/user/profile:', error);
     return NextResponse.json({ 
       error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR 
     }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });

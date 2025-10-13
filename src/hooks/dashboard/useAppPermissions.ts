@@ -1,6 +1,17 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * App permission data structure
+ */
 export interface AppPermission {
   id: string;
   user_id: string;
@@ -26,6 +37,9 @@ export interface AppPermission {
   };
 }
 
+/**
+ * User data structure for app permissions
+ */
 export interface User {
   id: string;
   email: string;
@@ -35,6 +49,14 @@ export interface User {
   };
 }
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for managing app permissions
+ * Handles fetching, granting, updating, and revoking app access for users
+ * @returns Object with permissions data, loading state, error state, and permission management functions
+ */
 export const useAppPermissions = () => {
   const { getAccessToken } = useAuth();
   const [permissions, setPermissions] = useState<AppPermission[]>([]);

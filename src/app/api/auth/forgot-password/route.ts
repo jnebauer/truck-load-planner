@@ -4,6 +4,10 @@ import { sendPasswordResetEmail } from '@/lib/email';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import crypto from 'crypto';
 
+/**
+ * POST /api/auth/forgot-password
+ * Send password reset email to user
+ */
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();

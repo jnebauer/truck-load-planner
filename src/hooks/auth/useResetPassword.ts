@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -8,22 +11,42 @@ import { showToast } from '@/lib/toast';
 import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/validations';
 import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * Request data for password reset
+ */
 interface ResetPasswordData {
   token: string;
   password: string;
 }
 
+/**
+ * Response from password reset request
+ */
 interface ResetPasswordResponse {
   error: Error | null;
   message: string;
 }
 
+/**
+ * Response from token verification
+ */
 interface VerifyTokenResponse {
   error: Error | null;
   valid: boolean;
   email?: string;
 }
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for handling password reset functionality
+ * Manages token verification and password reset flow
+ * @returns Object with loading states, form handlers, token verification, and password reset function
+ */
 export const useResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);

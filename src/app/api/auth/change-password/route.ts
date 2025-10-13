@@ -4,6 +4,10 @@ import { authenticateUser } from '@/lib/auth-middleware';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import bcrypt from 'bcryptjs';
 
+/**
+ * POST /api/auth/change-password
+ * Change password for authenticated user
+ */
 export async function POST(request: NextRequest) {
   try {
     // Check if user is authenticated

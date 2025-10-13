@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyRefreshToken, generateTokenPair, JWTPayload } from '@/lib/jwt';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
+/**
+ * POST /api/auth/refresh
+ * Refresh access token using refresh token
+ */
 export async function POST(request: NextRequest) {
   try {
     const { refreshToken } = await request.json();
 
     if (!refreshToken) {
       return NextResponse.json(
-        { error: 'Refresh token is required' },
-        { status: 400 }
+        { error: API_RESPONSE_MESSAGES.ERROR.TOKEN_REQUIRED },
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -17,8 +22,8 @@ export async function POST(request: NextRequest) {
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
       return NextResponse.json(
-        { error: 'Invalid or expired refresh token' },
-        { status: 401 }
+        { error: API_RESPONSE_MESSAGES.ERROR.INVALID_TOKEN },
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -42,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (error || !user) {
       return NextResponse.json(
         { error: 'User not found or inactive' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -85,7 +90,7 @@ export async function POST(request: NextRequest) {
     console.error('Token refresh error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 }

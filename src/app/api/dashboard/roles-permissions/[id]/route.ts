@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
-// PUT /api/dashboard/roles-permissions/[id] - Update role (admin only)
+/**
+ * PUT /api/dashboard/roles-permissions/[id]
+ * Update role details and permissions (Admin only)
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,15 +16,15 @@ export async function PUT(
     const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
-        error: authError || 'Unauthorized' 
-      }, { status: 401 });
+        error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED 
+      }, { status: HTTP_STATUS.UNAUTHORIZED });
     }
 
     // Only admin can update roles
     if (user.role !== 'admin') {
       return NextResponse.json({ 
-        error: 'Only administrators can update roles' 
-      }, { status: 403 });
+        error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS 
+      }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
     const supabase = await createClient();
@@ -30,7 +34,10 @@ export async function PUT(
 
     // Validate required fields
     if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     // Check if role exists
@@ -41,7 +48,10 @@ export async function PUT(
       .single();
 
     if (roleError || !existingRole) {
-      return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.ROLE_NOT_FOUND },
+        { status: HTTP_STATUS.NOT_FOUND }
+      );
     }
 
     // Check if new name conflicts with existing role (excluding current role)
@@ -53,7 +63,10 @@ export async function PUT(
       .single();
 
     if (conflictingRole) {
-      return NextResponse.json({ error: 'Role name already exists' }, { status: 400 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_ROLE },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     // Update role
@@ -70,7 +83,10 @@ export async function PUT(
 
     if (updateError) {
       console.error('Error updating role:', updateError);
-      return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
     }
 
     // Update permissions
@@ -114,7 +130,10 @@ export async function PUT(
     });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+    );
   }
 }
 
@@ -128,15 +147,15 @@ export async function DELETE(
     const { user, error: authError } = await authenticateUser(request);
     if (authError || !user) {
       return NextResponse.json({ 
-        error: authError || 'Unauthorized' 
-      }, { status: 401 });
+        error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED 
+      }, { status: HTTP_STATUS.UNAUTHORIZED });
     }
 
     // Only admin can delete roles
     if (user.role !== 'admin') {
       return NextResponse.json({ 
-        error: 'Only administrators can delete roles' 
-      }, { status: 403 });
+        error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS 
+      }, { status: HTTP_STATUS.FORBIDDEN });
     }
 
     const supabase = await createClient();
@@ -150,7 +169,10 @@ export async function DELETE(
       .single();
 
     if (roleError || !existingRole) {
-      return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.ROLE_NOT_FOUND },
+        { status: HTTP_STATUS.NOT_FOUND }
+      );
     }
 
     // Check if role has users assigned
@@ -162,13 +184,16 @@ export async function DELETE(
 
     if (usersError) {
       console.error('Error checking users:', usersError);
-      return NextResponse.json({ error: 'Failed to check role usage' }, { status: 500 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
     }
 
     if (users && users.length > 0) {
       return NextResponse.json({ 
         error: 'Cannot delete role that has users assigned to it' 
-      }, { status: 400 });
+      }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Delete role (permissions will be deleted automatically due to CASCADE)
@@ -179,14 +204,20 @@ export async function DELETE(
 
     if (deleteError) {
       console.error('Error deleting role:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete role' }, { status: 500 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
     }
 
     return NextResponse.json({ 
-      message: 'Role deleted successfully' 
+      message: API_RESPONSE_MESSAGES.SUCCESS.ROLE_DELETED 
     });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+    );
   }
 }

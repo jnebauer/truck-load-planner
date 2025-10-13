@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -8,6 +11,14 @@ import { showToast } from '@/lib/toast';
 import { TOAST_MESSAGES } from '@/lib/backend/constants';
 import { changePasswordSchema, profileUpdateSchema, ChangePasswordFormData, ProfileUpdateFormData } from '@/lib/validations';
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for managing user settings (profile and password)
+ * Handles profile updates and password changes for authenticated users
+ * @returns Object with form states, handlers, and user data
+ */
 export const useSettings = () => {
   const { user, authenticatedFetch } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');

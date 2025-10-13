@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,6 +13,14 @@ import { userFormSchema } from '@/lib/validations';
 import { User, Role } from '@/components/dashboard/users';
 import { UserFormType } from '@/components/dashboard/users/formTypes';
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for managing users in the dashboard
+ * Handles user CRUD operations, pagination, search, and role management
+ * @returns Object with users data, loading states, form handlers, and user management functions
+ */
 export function useUsers() {
   const { hasPermission, authenticatedFetch } = useAuth();
   const [users, setUsers] = useState<User[]>([]);

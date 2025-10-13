@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -8,6 +11,14 @@ import { TOAST_MESSAGES } from '@/lib/backend/constants';
 import { Role, RoleFormData } from '@/lib/permissions';
 import { getAllPermissionsByCategory, validateRolePermissions } from '@/lib/role-utils';
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for managing roles and permissions in the dashboard
+ * Handles role CRUD operations, permission assignment, pagination, and search
+ * @returns Object with roles data, loading states, form handlers, and role management functions
+ */
 export const useRolesPermissions = () => {
   const { hasPermission } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);

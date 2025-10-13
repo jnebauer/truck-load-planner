@@ -4,6 +4,10 @@ import bcrypt from 'bcryptjs';
 import { generateTokenPair, JWTPayload } from '@/lib/jwt';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 
+/**
+ * POST /api/auth/login
+ * Authenticate user with email and password, return JWT tokens
+ */
 export async function POST(request: NextRequest) {
   try {
     const { email, password, rememberMe } = await request.json();

@@ -1,6 +1,17 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * Application data structure
+ */
 export interface App {
   id: string;
   name: string;
@@ -9,6 +20,9 @@ export interface App {
   status: string;
 }
 
+/**
+ * Return type for useApps and useUserApps hooks
+ */
 interface UseAppsReturn {
   apps: App[];
   loading: boolean;
@@ -16,9 +30,13 @@ interface UseAppsReturn {
   refetch: () => Promise<void>;
 }
 
+// ============================================================================
+// HOOKS
+// ============================================================================
 /**
- * Hook to fetch apps from database via API
- * Replaces static APPS_CONFIG with dynamic data
+ * Hook to fetch all active apps from database
+ * Fetches complete list of applications available in the system
+ * @returns Object with apps array, loading state, error state, and refetch function
  */
 export function useApps(): UseAppsReturn {
   const { authenticatedFetch } = useAuth();
@@ -61,8 +79,10 @@ export function useApps(): UseAppsReturn {
 }
 
 /**
- * Hook to fetch user's accessible apps
- * Returns only apps that the user has permission to access
+ * Hook to fetch user's accessible apps based on permissions
+ * Returns only apps that the user has been granted access to
+ * @param userId - Optional user ID to fetch apps for specific user (defaults to current user)
+ * @returns Object with apps array, loading state, error state, and refetch function
  */
 export function useUserApps(userId?: string): UseAppsReturn {
   const { authenticatedFetch } = useAuth();

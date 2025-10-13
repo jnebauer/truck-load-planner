@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import bcrypt from 'bcryptjs';
 
+/**
+ * POST /api/auth/reset-password
+ * Reset user password using reset token
+ */
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json();
 
     if (!token || !password) {
       return NextResponse.json(
-        { error: 'Token and password are required' },
-        { status: 400 }
+        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
     // Validate password strength
     if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.PASSWORD_TOO_SHORT },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     const supabase = await createClient();

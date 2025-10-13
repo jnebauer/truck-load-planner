@@ -1,18 +1,31 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * Return type for useAppPermissionCheck hook
+ */
 interface AppPermissionCheckResult {
   hasAccess: boolean;
   isChecking: boolean;
   error: string | null;
 }
 
+// ============================================================================
+// HOOK
+// ============================================================================
 /**
  * Hook to check if the current user has permission to access a specific app
- * @param requiredAppName - The name of the app to check permission for
+ * Verifies app permissions and handles automatic redirection for unauthorized access
+ * @param requiredAppName - The name of the app to check permission for (e.g., "Truck Load Planner")
  * @param redirectOnFail - Where to redirect if user doesn't have access (default: '/apps')
  * @returns Object with hasAccess, isChecking, and error states
  */

@@ -128,3 +128,7 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Documentation and pattern guides (exclude README.md)
+*.md
+!README.md

@@ -1,9 +1,33 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useCallback } from 'react';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
 /**
- * Custom hook for managing confirmation dialogs throughout the application
+ * State structure for confirmation dialog
+ */
+interface ConfirmationDialogState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: 'danger' | 'warning' | 'info';
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for managing confirmation dialogs throughout the application
+ * Provides a reusable confirmation dialog with loading states and callbacks
  * 
  * @example
  * ```tsx
@@ -17,7 +41,6 @@ import { useState, useCallback } from 'react';
  *     cancelText: 'Cancel',
  *     variant: 'danger',
  *     onConfirm: () => {
- *       // Perform delete action
  *       deleteItem();
  *     }
  *   });
@@ -40,19 +63,9 @@ import { useState, useCallback } from 'react';
  *   </>
  * );
  * ```
+ * 
+ * @returns Object with dialog state and control functions
  */
-
-interface ConfirmationDialogState {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
-  onConfirm?: () => void;
-  onCancel?: () => void;
-}
-
 export const useConfirmationDialog = () => {
   const [state, setState] = useState<ConfirmationDialogState>({
     isOpen: false,

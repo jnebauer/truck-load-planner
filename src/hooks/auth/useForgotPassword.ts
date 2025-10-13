@@ -1,3 +1,6 @@
+// ============================================================================
+// DIRECTIVE & IMPORTS
+// ============================================================================
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -7,15 +10,32 @@ import { showToast } from '@/lib/toast';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/validations';
 import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+/**
+ * Request data for password reset
+ */
 interface ForgotPasswordData {
   email: string;
 }
 
+/**
+ * Response from password reset request
+ */
 interface ForgotPasswordResponse {
   error: Error | null;
   message: string;
 }
 
+// ============================================================================
+// HOOK
+// ============================================================================
+/**
+ * Hook for handling forgot password functionality
+ * Manages password reset request flow and email sending
+ * @returns Object with loading state, success state, form handlers, and reset request function
+ */
 export const useForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
