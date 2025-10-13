@@ -1,17 +1,16 @@
 // ============================================================================
-// IMAGE UPLOAD API ROUTE
+// IMAGE UPLOAD API ROUTE - Supabase Storage
 // ============================================================================
 /**
- * Handles image upload and saves to public/images folder
+ * Handles image upload and saves to Supabase Storage
  * 
  * @route POST /api/upload/image
- * @description Uploads and saves image files to public/images directory
+ * @description Uploads and saves image files to Supabase Storage bucket
  * @returns {object} Response with image URL or error message
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { createClient } from '@/lib/supabase/server';
 import { HTTP_STATUS, API_RESPONSE_MESSAGES } from '@/lib/backend/constants';
 
 /**
@@ -53,32 +52,50 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = path.extname(file.name);
-    const filename = `${timestamp}-${randomString}${extension}`;
+    const fileExtension = file.name.split('.').pop();
+    const filename = `${timestamp}-${randomString}.${fileExtension}`;
+    
+    // Create storage path
+    const storagePath = `${folder}/${filename}`;
 
-    // Convert file to buffer
+    // Convert file to array buffer
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
 
-    // Define upload directory
-    const uploadDir = path.join(process.cwd(), 'public', 'images', folder);
-    const filepath = path.join(uploadDir, filename);
+    // Initialize Supabase client
+    const supabase = await createClient();
 
-    // Ensure directory exists
-    await mkdir(uploadDir, { recursive: true });
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('images') // Bucket name
+      .upload(storagePath, bytes, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      });
 
-    // Write file to disk
-    await writeFile(filepath, buffer);
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json(
+        {
+          error: 'Failed to upload image',
+          message: uploadError.message,
+        },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
+    }
 
-    // Generate public URL
-    const imageUrl = `/images/${folder}/${filename}`;
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('images')
+      .getPublicUrl(storagePath);
 
     return NextResponse.json(
       {
         success: true,
         message: API_RESPONSE_MESSAGES.SUCCESS.UPLOAD_SUCCESS,
         data: {
-          url: imageUrl,
+          url: urlData.publicUrl,
+          path: storagePath,
           filename: filename,
         },
       },
@@ -95,4 +112,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
