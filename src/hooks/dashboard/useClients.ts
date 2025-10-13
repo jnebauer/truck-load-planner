@@ -51,7 +51,7 @@ export interface Client {
   tax_id?: string | null;
   website?: string | null;
   notes?: string | null;
-  logo_url?: string | null;
+  logo_image?: string | null;
 }
 
 // ============================================================================
@@ -108,7 +108,7 @@ export function useClients() {
       taxId: '',
       website: '',
       notes: '',
-      logoUrl: '',
+      logoImage: '',
     },
   });
 
@@ -210,7 +210,7 @@ export function useClients() {
       taxId: '',
       website: '',
       notes: '',
-      logoUrl: '',
+      logoImage: '',
     });
     setIsFormOpen(true);
   }, [form]);
@@ -256,7 +256,7 @@ export function useClients() {
       taxId: client.tax_id || '',
       website: client.website || '',
       notes: client.notes || '',
-      logoUrl: client.logo_url || '',
+      logoImage: client.logo_image || '',
     });
     setIsFormOpen(true);
   }, [form]);
@@ -297,7 +297,7 @@ export function useClients() {
         taxId: data.taxId,
         website: data.website,
         notes: data.notes,
-        logoUrl: data.logoUrl,
+        logoImage: data.logoImage,
         ...(data.password && data.password.trim() !== '' && { password: data.password }),
       };
 

@@ -38,7 +38,7 @@ export interface User extends Record<string, unknown> {
   tax_id?: string | null;
   website?: string | null;
   notes?: string | null;
-  logo_url?: string | null;
+  logo_image?: string | null;
 }
 
 export interface Role {

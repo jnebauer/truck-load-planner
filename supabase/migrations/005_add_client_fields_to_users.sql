@@ -19,11 +19,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tax_id VARCHAR(100);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS notes TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url TEXT;
-
--- Add indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_users_company_name ON users(company_name) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_users_tax_id ON users(tax_id) WHERE deleted_at IS NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_image TEXT;
 
 -- Add comments for documentation
 COMMENT ON COLUMN users.company_name IS 'Company name for client users';
@@ -39,5 +35,5 @@ COMMENT ON COLUMN users.contact_person IS 'Primary contact person name for clien
 COMMENT ON COLUMN users.tax_id IS 'Tax identification number for client users';
 COMMENT ON COLUMN users.website IS 'Website URL for client users';
 COMMENT ON COLUMN users.notes IS 'Additional notes for client users';
-COMMENT ON COLUMN users.logo_url IS 'Logo URL for client users';
+COMMENT ON COLUMN users.logo_image IS 'Logo image path for client users (uploaded file path)';
 

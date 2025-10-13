@@ -315,7 +315,7 @@ export type Database = {
           tax_id: string | null
           website: string | null
           notes: string | null
-          logo_url: string | null
+          logo_image: string | null
           status: 'active' | 'inactive'
           created_at: string
           created_by: string | null
@@ -342,7 +342,7 @@ export type Database = {
           tax_id?: string | null
           website?: string | null
           notes?: string | null
-          logo_url?: string | null
+          logo_image?: string | null
           status?: 'active' | 'inactive'
           created_at?: string
           created_by?: string | null
@@ -369,7 +369,7 @@ export type Database = {
           tax_id?: string | null
           website?: string | null
           notes?: string | null
-          logo_url?: string | null
+          logo_image?: string | null
           status?: 'active' | 'inactive'
           created_at?: string
           created_by?: string | null

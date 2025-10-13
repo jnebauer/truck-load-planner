@@ -158,7 +158,7 @@ export const clientFormSchema = z.object({
   taxId: z.string().optional().or(z.literal('')),
   website: z.string().url(VALIDATION_MESSAGES.URL_INVALID).optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
-  logoUrl: z.string().url(VALIDATION_MESSAGES.URL_INVALID).optional().or(z.literal('')),
+  logoImage: z.string().optional().or(z.literal('')),
 });
 
 // Settings validation schemas

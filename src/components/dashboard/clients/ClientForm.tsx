@@ -43,7 +43,7 @@ export interface ClientFormType {
   taxId?: string;
   website?: string;
   notes?: string;
-  logoUrl?: string;
+  logoImage?: string;
 }
 
 interface ClientFormProps {
