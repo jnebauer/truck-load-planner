@@ -49,7 +49,7 @@ export function useApps(): UseAppsReturn {
       setLoading(true);
       setError(null);
 
-      const response = await authenticatedFetch('/api/app-permissions');
+      const response = await authenticatedFetch('/api/auth/app-permissions');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch apps: ${response.statusText}`);

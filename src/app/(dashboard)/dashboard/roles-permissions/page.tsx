@@ -6,7 +6,8 @@ import {
   RolesPageHeader,
   RoleForm,
 } from '@/components/dashboard/roles-permissions';
-import { AccessDenied, LoadingSpinner, Drawer } from '@/components/ui';
+import { AccessDenied } from '@/components/ui';
+import { LoadingSpinner, Drawer } from '@/components/common';
 import { useRolesPermissions } from '@/hooks/dashboard';
 
 export default function RolesPermissionsPage() {

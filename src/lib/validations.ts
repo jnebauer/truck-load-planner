@@ -58,7 +58,7 @@ export const userSchema = z.object({
   role: z
     .string()
     .min(1, VALIDATION_MESSAGES.ROLE_REQUIRED),
-  status: z.enum(['active', 'inactive', 'pending']).optional().default('active'),
+  status: z.enum(['active', 'inactive', 'blocked']).optional().default('active'),
 });
 
 // User create validation schema (password required)
@@ -101,12 +101,64 @@ export const userFormSchema = z.object({
     .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
     .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
   phone: z
-    .string(),
+    .string()
+    .optional()
+    .or(z.literal('')),
+  profileImage: z
+    .string()
+    .optional()
+    .or(z.literal('')),
   role: z
     .string()
     .min(1, VALIDATION_MESSAGES.ROLE_REQUIRED),
-  status: z.enum(['active', 'inactive', 'pending']),
-  appPermissions: z.record(z.string(), z.boolean()).optional().default({}),
+  status: z.enum(['active', 'inactive', 'blocked']),
+  appPermissions: z.record(z.string(), z.boolean()).default({}),
+});
+
+// Client form validation schema (includes all user fields + client fields)
+export const clientFormSchema = z.object({
+  email: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID),
+  password: z
+    .string()
+    .optional()
+    .refine((val) => {
+      if (val && val.trim() !== '') {
+        return val.length >= 6;
+      }
+      return true;
+    }, {
+      message: VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH,
+    }),
+  fullName: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, VALIDATION_MESSAGES.NAME_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.NAME_MAX_LENGTH),
+  phone: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+  role: z.string(),
+  status: z.enum(['active', 'inactive', 'blocked']),
+  appPermissions: z.record(z.string(), z.boolean()).optional(),
+  // Client-specific fields
+  companyName: z.string().optional().or(z.literal('')),
+  billingAddress: z.string().optional().or(z.literal('')),
+  billingLat: z.number().optional().nullable(),
+  billingLng: z.number().optional().nullable(),
+  billingPlaceId: z.string().optional().or(z.literal('')),
+  shippingAddress: z.string().optional().or(z.literal('')),
+  shippingLat: z.number().optional().nullable(),
+  shippingLng: z.number().optional().nullable(),
+  shippingPlaceId: z.string().optional().or(z.literal('')),
+  contactPerson: z.string().optional().or(z.literal('')),
+  taxId: z.string().optional().or(z.literal('')),
+  website: z.string().url(VALIDATION_MESSAGES.URL_INVALID).optional().or(z.literal('')),
+  notes: z.string().optional().or(z.literal('')),
+  logoUrl: z.string().url(VALIDATION_MESSAGES.URL_INVALID).optional().or(z.literal('')),
 });
 
 // Settings validation schemas
@@ -137,17 +189,7 @@ export const profileUpdateSchema = z.object({
   phone: z
     .string()
     .optional()
-    .or(z.literal(''))
-    .refine((val) => {
-      // If phone is empty or undefined, it's valid
-      if (!val || val.trim() === '') {
-        return true;
-      }
-      // If phone is provided, it must contain only numbers
-      return /^\d+$/.test(val);
-    }, {
-      message: VALIDATION_MESSAGES.PHONE_NUMBERS_ONLY,
-    }),
+    .or(z.literal('')),
 });
 
 // Type exports
@@ -157,5 +199,6 @@ export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type UserFormData = z.infer<typeof userSchema>;
 export type UserCreateFormData = z.infer<typeof userCreateSchema>;
 export type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
+export type ClientFormSchemaData = z.infer<typeof clientFormSchema>;
 export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;

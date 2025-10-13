@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Plus, Shield, BarChart3, Edit, Minus } from 'lucide-react';
-import { DataTable, Column, Action } from '@/components/ui';
+import { DataTable, Column, Action } from '@/components/common';
 import { Role } from '@/lib/permissions';
 import { enhanceRole, generateRoleSummary } from '@/lib/role-utils';
 

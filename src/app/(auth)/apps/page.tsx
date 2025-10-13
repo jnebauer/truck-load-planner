@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserApps } from '@/hooks/auth/useApps';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import AppsHeader from '@/components/auth/apps/AppsHeader';
 import AppsWelcome from '@/components/auth/apps/AppsWelcome';
 import AppsFooter from '@/components/auth/apps/AppsFooter';

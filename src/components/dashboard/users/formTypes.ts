@@ -3,8 +3,9 @@ export type UserFormType = {
   email: string;
   password?: string;
   fullName: string;
-  phone: string;
+  phone?: string;
+  profileImage?: string;
   role: string;
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'blocked';
   appPermissions?: Record<string, boolean>;
 };

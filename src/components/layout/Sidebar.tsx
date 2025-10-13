@@ -76,7 +76,7 @@ export default function Sidebar({ user }: SidebarProps) {
                   }`}
                 >
                   <Icon
-                    className={`mr-3 h-5 w-5 ${
+                    className={`mr-2 h-5 w-5 flex-shrink-0 ${
                       active
                         ? 'text-gray-900'
                         : 'text-gray-500 group-hover:text-gray-700'
@@ -98,7 +98,7 @@ export default function Sidebar({ user }: SidebarProps) {
                 >
                   <div className="flex items-center">
                     <Icon
-                      className={`mr-3 h-5 w-5 ${
+                      className={`mr-2 h-5 w-5 flex-shrink-0 ${
                         active
                           ? 'text-gray-900'
                           : 'text-gray-500 group-hover:text-gray-700'
@@ -130,7 +130,7 @@ export default function Sidebar({ user }: SidebarProps) {
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`}
                       >
-                        <SubIcon className="mr-2 h-4 w-4" />
+                        <SubIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                         {sub.name}
                       </Link>
                     );

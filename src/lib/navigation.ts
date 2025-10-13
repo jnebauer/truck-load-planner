@@ -107,7 +107,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: 'clients',
     name: 'Clients',
-    href: '',
+    href: '/dashboard/clients',
     icon: Building2,
     permission: 'navigation.clients',
     actions: {
@@ -141,7 +141,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
       },
       {
         id: 'users',
-        name: 'Users',
+        name: 'Employees',
         href: '/dashboard/users',
         icon: UserCheck,
         permission: 'users.read',

@@ -24,6 +24,14 @@ export const API_RESPONSE_MESSAGES = {
     USER_UPDATED: 'User updated successfully',
     PROFILE_UPDATED: 'Profile updated successfully',
     USER_DELETED: 'User deleted successfully',
+    
+    // Clients
+    CLIENT_CREATED: 'Client created successfully',
+    CLIENT_UPDATED: 'Client updated successfully',
+    CLIENT_DELETED: 'Client deleted successfully',
+    
+    // Upload
+    UPLOAD_SUCCESS: 'File uploaded successfully',
   },
 
   ERROR: {
@@ -67,6 +75,10 @@ export const API_RESPONSE_MESSAGES = {
     DATABASE_ERROR: 'Database error',
     EMAIL_SEND_ERROR: 'Failed to send email',
     FILE_UPLOAD_ERROR: 'File upload failed',
+    FETCH_FAILED: 'Failed to fetch data',
+    SAVE_FAILED: 'Failed to save',
+    UPDATE_FAILED: 'Failed to update',
+    DELETE_FAILED: 'Failed to delete',
     
     // Network Errors
     NETWORK_ERROR: 'Network error',
@@ -150,6 +162,11 @@ export const TOAST_MESSAGES = {
     USER_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.USER_UPDATED + '!',
     PROFILE_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.PROFILE_UPDATED + '!',
     USER_DELETED: API_RESPONSE_MESSAGES.SUCCESS.USER_DELETED + '!',
+    
+    // Generic
+    CREATED: 'Created successfully!',
+    UPDATED: 'Updated successfully!',
+    DELETED: 'Deleted successfully!',
   },
 
   ERROR: {
@@ -170,6 +187,7 @@ export const TOAST_MESSAGES = {
     VALIDATION_FAILED: API_RESPONSE_MESSAGES.ERROR.VALIDATION_ERROR,
     INVALID_EMAIL_FORMAT: API_RESPONSE_MESSAGES.ERROR.INVALID_EMAIL,
     PASSWORD_TOO_SHORT: API_RESPONSE_MESSAGES.ERROR.PASSWORD_TOO_SHORT,
+    APP_PERMISSION_REQUIRED: 'Please select at least one app permission',
     
     // Resource Errors
     ROLE_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.ROLE_NOT_FOUND,
@@ -185,7 +203,14 @@ export const TOAST_MESSAGES = {
     USER_UPDATE_FAILED: 'Failed to update user',
     USER_DELETE_FAILED: 'Failed to delete user',
     USER_FETCH_FAILED: 'Failed to fetch users',
-    SAVE_FAILED: 'Failed to save',
+    CLIENT_CREATE_FAILED: 'Failed to create client',
+    CLIENT_UPDATE_FAILED: 'Failed to update client',
+    CLIENT_DELETE_FAILED: 'Failed to delete client',
+    CLIENT_FETCH_FAILED: 'Failed to fetch clients',
+    FETCH_FAILED: API_RESPONSE_MESSAGES.ERROR.FETCH_FAILED,
+    SAVE_FAILED: API_RESPONSE_MESSAGES.ERROR.SAVE_FAILED,
+    UPDATE_FAILED: API_RESPONSE_MESSAGES.ERROR.UPDATE_FAILED,
+    DELETE_FAILED: API_RESPONSE_MESSAGES.ERROR.DELETE_FAILED,
     
     // Server Errors
     SERVER_ERROR: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR.replace('Internal ', '') + ' occurred',
@@ -228,6 +253,7 @@ export const VALIDATION_MESSAGES = {
   PHONE_NUMBERS_ONLY: 'Phone number must contain only numbers',
   ROLE_REQUIRED: 'Please select a role',
   PERMISSION_REQUIRED: 'Please select at least one permission',
+  URL_INVALID: 'Please enter a valid URL',
 } as const;
 
 // ============================================================================

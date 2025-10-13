@@ -74,7 +74,7 @@ export const useAppPermissions = () => {
         throw new Error('No access token available');
       }
 
-      const response = await fetch('/api/app-permissions', {
+      const response = await fetch('/api/auth/app-permissions', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -124,7 +124,7 @@ export const useAppPermissions = () => {
         throw new Error('No access token available');
       }
 
-      const response = await fetch('/api/app-permissions', {
+      const response = await fetch('/api/auth/app-permissions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -158,7 +158,7 @@ export const useAppPermissions = () => {
         throw new Error('No access token available');
       }
 
-      const response = await fetch('/api/app-permissions', {
+      const response = await fetch('/api/auth/app-permissions', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +194,7 @@ export const useAppPermissions = () => {
         throw new Error('No access token available');
       }
 
-      const response = await fetch(`/api/app-permissions?id=${id}`, {
+      const response = await fetch(`/api/auth/app-permissions?id=${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

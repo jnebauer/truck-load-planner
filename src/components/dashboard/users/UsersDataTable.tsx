@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Edit, Mail, Phone, Shield, User as UserIcon } from 'lucide-react';
-import { DataTable, Column, Action } from '@/components/ui';
+import { DataTable, Column, Action } from '@/components/common';
 import { User } from './types';
 
 interface UsersDataTableProps {
@@ -58,12 +58,17 @@ export default function UsersDataTable({
     {
       key: 'phone',
       header: 'Phone',
-      render: (value) => (
-        <div className="flex items-center">
-          <Phone className="h-4 w-4 text-gray-400 mr-2" />
-          <span className="text-gray-900">{String(value) || 'N/A'}</span>
-        </div>
-      ),
+      render: (value) => {
+        const phoneValue = value && value !== 'null' && String(value).trim() !== '' 
+          ? String(value) 
+          : '-';
+        return (
+          <div className="flex items-center">
+            <Phone className="h-4 w-4 text-gray-400 mr-2" />
+            <span className="text-gray-600">{phoneValue}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'role',
@@ -86,7 +91,7 @@ export default function UsersDataTable({
         const statusColors = {
           active: 'bg-green-100 text-green-800',
           inactive: 'bg-red-100 text-red-800',
-          pending: 'bg-yellow-100 text-yellow-800'
+          blocked: 'bg-yellow-100 text-yellow-800'
         };
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors]}`}>
@@ -124,8 +129,8 @@ export default function UsersDataTable({
       data={users}
       columns={columns}
       actions={actions}
-      searchPlaceholder="Search users..."
-      emptyMessage="No users found"
+      searchPlaceholder="Search employees..."
+      emptyMessage="No employees found"
       // Server-side pagination props
       serverSidePagination={true}
       currentPage={currentPage}

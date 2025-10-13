@@ -10,7 +10,7 @@ interface UserWithClients {
   email: string;
   full_name: string | null;
   role_id: string | null;
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'blocked';
   created_at: string;
   updated_at: string;
   roles: {
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
+    const roleFilter = searchParams.get('role') || ''; // Role filter for clients
 
     // Validate pagination parameters
     if (page < 1 || limit < 1 || limit > 100) {
@@ -78,6 +79,31 @@ export async function GET(request: NextRequest) {
         )
       `, { count: 'exact' });
 
+    // Add role filter if provided (for clients page)
+    if (roleFilter) {
+      // Get role_id from role name
+      const { data: roleData } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('name', roleFilter)
+        .single();
+      
+      if (roleData) {
+        usersQuery = usersQuery.eq('role_id', roleData.id);
+      }
+    } else {
+      // For users page, exclude Client role
+      const { data: clientRoleData } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('name', 'Client')
+        .single();
+      
+      if (clientRoleData) {
+        usersQuery = usersQuery.neq('role_id', clientRoleData.id);
+      }
+    }
+
     // Add search filter if provided
     if (search) {
       usersQuery = usersQuery.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -108,7 +134,7 @@ export async function GET(request: NextRequest) {
       totalUsers: totalCount || 0, // Use total count, not filtered count
       activeUsers: 0,
       inactiveUsers: 0,
-      pendingUsers: 0
+      blockedUsers: 0
     };
 
     if (statusCounts) {
@@ -120,8 +146,8 @@ export async function GET(request: NextRequest) {
           case 'inactive':
             stats.inactiveUsers++;
             break;
-          case 'pending':
-            stats.pendingUsers++;
+          case 'blocked':
+            stats.blockedUsers++;
             break;
         }
       });
@@ -175,7 +201,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    const { email, password, fullName, role, phone, status, appPermissions } = await request.json();
+    const { 
+      email, password, fullName, role, phone, profileImage, status, appPermissions,
+     
+    } = await request.json();
 
     if (!email || !password || !fullName || !role) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
@@ -216,7 +245,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (roleError || !roleData) {
-      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.VALIDATION_ERROR }, { status: HTTP_STATUS.BAD_REQUEST });
+      console.error('Role fetch error:', roleError);
+      console.error('Requested role:', role);
+      return NextResponse.json({ 
+        error: `Role '${role}' not found in database. Please check if the role exists.`,
+        details: roleError?.message 
+      }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Hash password using bcrypt
@@ -225,19 +259,25 @@ export async function POST(request: NextRequest) {
     // Create user in our users table
     const { data: newUser, error: createError } = await supabase
       .from('users')
-      .insert({
-        email,
-        password_hash: passwordHash,
-        full_name: fullName,
-        phone: phone || null,
-        role_id: roleData.id,
-        status: status || 'active'
+        .insert({
+          email,
+          password_hash: passwordHash,
+          full_name: fullName,
+          phone: phone || null,
+          profile_image: profileImage || null,
+          role_id: roleData.id,
+          status: status || 'active',
       })
       .select()
       .single();
 
     if (createError) {
-      return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      console.error('User creation error:', createError);
+      return NextResponse.json({ 
+        error: 'Failed to create user', 
+        details: createError.message,
+        code: createError.code 
+      }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
     }
 
     // Save app permissions to database
@@ -266,6 +306,7 @@ export async function POST(request: NextRequest) {
       user_id: string;
       app_id: string;
       created_by: string;
+      updated_by: string;
     }> = [];
     
     // Helper function to convert camelCase to display name
@@ -288,6 +329,7 @@ export async function POST(request: NextRequest) {
               user_id: newUser.id,
               app_id: appIdMap[displayName],
               created_by: user.id,
+              updated_by: user.id,
             });
           }
         }
@@ -327,6 +369,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: API_RESPONSE_MESSAGES.SUCCESS.USER_CREATED, userId: newUser.id });
   } catch (error) {
     console.error('Error creating user:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    return NextResponse.json({ 
+      error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR,
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : '') : undefined
+    }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }

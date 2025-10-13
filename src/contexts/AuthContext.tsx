@@ -10,7 +10,7 @@ interface AuthUser {
   full_name: string | null;
   phone?: string | null;
   role: 'admin' | 'pm' | 'warehouse' | 'client_viewer';
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'blocked';
   rememberMe: boolean;
   permissions?: string[]; // Database permissions
   accessibleApps?: string[]; // Apps user has access to

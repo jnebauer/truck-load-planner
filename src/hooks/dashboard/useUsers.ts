@@ -41,17 +41,18 @@ export function useUsers() {
     totalUsers: 0,
     activeUsers: 0,
     inactiveUsers: 0,
-    pendingUsers: 0
+    blockedUsers: 0
   });
 
   // Form for user creation/editing
-  const form = useForm<UserFormType>({
+  const form = useForm({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
       email: '',
       password: '',
       fullName: '',
       phone: '',
+      profileImage: '',
       role: '',
       status: 'active',
       appPermissions: {},
@@ -119,8 +120,10 @@ export function useUsers() {
       password: '',
       fullName: '',
       phone: '',
+      profileImage: '',
       role: '',
       status: 'active',
+      appPermissions: {},
     });
     setIsFormOpen(true);
   }, [form]);
@@ -156,6 +159,7 @@ export function useUsers() {
         password: '',
         fullName: user.full_name || '',
         phone: user.phone || '',
+        profileImage: user.profile_image || '',
         role: user.role,
         status: user.status,
         appPermissions: appPermissions,

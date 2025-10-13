@@ -6,18 +6,18 @@ import {
   User as UserIcon,
   Mail,
   Lock,
-  Phone,
   Shield,
   Eye,
   EyeOff,
   RefreshCw,
 } from 'lucide-react';
-import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
+import { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import { User, Role } from './types';
 import { UserFormType } from './formTypes';
 import { generateSecurePassword } from '@/lib/password-utils';
 import { useApps } from '@/hooks/auth/useApps';
 import { APP_NAMES } from '@/lib/constants/apps';
+import { PhoneInput, ImageUpload } from '@/components/common';
 
 interface UserFormProps {
   editingUser: User | null;
@@ -29,7 +29,7 @@ interface UserFormProps {
   isSubmitting: boolean;
   errors: FieldErrors<UserFormType>;
   register: UseFormRegister<UserFormType>;
-  setValue: (name: keyof UserFormType, value: string) => void;
+  setValue: UseFormSetValue<UserFormType>;
   watch: UseFormWatch<UserFormType>;
 }
 
@@ -47,10 +47,20 @@ export default function UserForm({
   const [showPassword, setShowPassword] = React.useState(false);
   const { apps, loading: appsLoading } = useApps();
   const appPermissions = watch('appPermissions') || {};
+  const phoneValue = watch('phone') || '';
+  const profileImageValue = watch('profileImage') || '';
 
   const handleGeneratePassword = () => {
     const randomPassword = generateSecurePassword();
     setValue('password', randomPassword);
+  };
+
+  const handlePhoneChange = (value: string | undefined) => {
+    setValue('phone', value || '');
+  };
+
+  const handleImageChange = (url: string) => {
+    setValue('profileImage', url);
   };
 
   // Helper function to convert app name to form field name
@@ -67,6 +77,25 @@ export default function UserForm({
   return (
     <form onSubmit={onSubmit} className="h-full flex flex-col">
       <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto">
+        {/* Full Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <UserIcon className="inline h-4 w-4 mr-1" />
+            Full Name *
+          </label>
+          <input
+            {...register('fullName')}
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter full name"
+          />
+          {errors.fullName && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.fullName.message}
+            </p>
+          )}
+        </div>
+
         {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -135,41 +164,23 @@ export default function UserForm({
           )}
         </div>
 
-        {/* Full Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <UserIcon className="inline h-4 w-4 mr-1" />
-            Full Name *
-          </label>
-          <input
-            {...register('fullName')}
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Enter full name"
-          />
-          {errors.fullName && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.fullName.message}
-            </p>
-          )}
-        </div>
-
         {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Phone className="inline h-4 w-4 mr-1" />
-            Phone Number
-          </label>
-          <input
-            {...register('phone')}
-            type="tel"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Enter phone number"
-          />
-          {errors.phone && (
-            <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-          )}
-        </div>
+        <PhoneInput
+          label="Phone Number"
+          value={phoneValue}
+          onChange={handlePhoneChange}
+          placeholder="Enter phone number"
+          error={errors.phone?.message}
+        />
+
+        {/* Profile Image */}
+        <ImageUpload
+          label="Profile Image"
+          value={profileImageValue}
+          onChange={handleImageChange}
+          folder="users"
+          error={errors.profileImage?.message}
+        />
 
         {/* Role */}
         <div>
@@ -182,11 +193,13 @@ export default function UserForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Select a role</option>
-            {roles.map((role) => (
-              <option key={role.id} value={role.name}>
-                {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
-              </option>
-            ))}
+            {roles
+              .filter((role) => role.name.toLowerCase() !== 'client')
+              .map((role) => (
+                <option key={role.id} value={role.name}>
+                  {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                </option>
+              ))}
           </select>
           {errors.role && (
             <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
@@ -204,7 +217,7 @@ export default function UserForm({
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
+            <option value="blocked">Blocked</option>
           </select>
         </div>
 
@@ -285,7 +298,7 @@ export default function UserForm({
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              {editingUser ? 'Update User' : 'Create User'}
+              {editingUser ? 'Update Employee' : 'Create Employee'}
             </>
           )}
         </button>

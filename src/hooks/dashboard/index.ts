@@ -2,3 +2,4 @@
 export { useRolesPermissions } from './useRolesPermissions';
 export { useUsers } from './useUsers';
 export { useSettings } from './useSettings';
+export { useClients } from './useClients';
