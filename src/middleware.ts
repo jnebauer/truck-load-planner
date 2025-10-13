@@ -19,8 +19,7 @@ export function middleware(request: NextRequest) {
   }
   
   // For all other routes, allow them to proceed
-  // The client-side AuthContext will handle authentication checks
-  // and redirect to login if needed
+  // The client-side AuthContext and layout will handle authentication and permission checks
   return NextResponse.next();
 }
 

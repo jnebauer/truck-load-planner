@@ -31,10 +31,19 @@ export async function PUT(
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
-    const { email, password, fullName, role, phone, status } = await request.json();
+    const { email, password, fullName, role, phone, status, appPermissions } = await request.json();
 
     if (!email || !fullName || !role) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
+    // Validate that user has at least one app permission
+    const hasAnyPermission = appPermissions && Object.values(appPermissions).some(v => v === true);
+    
+    if (!hasAnyPermission) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.APP_PERMISSION_REQUIRED 
+      }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Check if email already exists for a different user
@@ -94,6 +103,77 @@ export async function PUT(
 
     if (updateError) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Update app permissions if provided
+    if (appPermissions) {
+      // First, get current app permissions
+      const { data: apps, error: appsError } = await supabase
+        .from('app_permissions')
+        .select('id, name')
+        .eq('status', 'active')
+        .is('deleted_at', null);
+
+      if (appsError || !apps || apps.length === 0) {
+        console.error('❌ Error fetching apps:', appsError);
+        // Don't fail the update if app permissions fetch fails
+      } else {
+        // Map app display names to IDs
+        const appIdMap: Record<string, string> = {};
+        apps.forEach(app => {
+          appIdMap[app.name] = app.id;
+        });
+
+        // Helper function to convert camelCase to display name
+        const toDisplayName = (camelCase: string): string => {
+          return camelCase
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, (str) => str.toUpperCase())
+            .trim();
+        };
+
+        // Delete existing permissions
+        const { error: deleteError } = await supabase
+          .from('user_app_permissions')
+          .delete()
+          .eq('user_id', userId);
+
+        if (deleteError) {
+          console.error('❌ Error deleting old app permissions:', deleteError);
+        }
+
+        // Build new user_app_permissions records dynamically
+        const appPermissionsToInsert: Array<{
+          user_id: string;
+          app_id: string;
+          created_by: string;
+        }> = [];
+        Object.keys(appPermissions).forEach((key) => {
+          if (appPermissions[key] === true) {
+            const displayName = toDisplayName(key);
+            
+            if (appIdMap[displayName]) {
+              appPermissionsToInsert.push({
+                user_id: userId,
+                app_id: appIdMap[displayName],
+                created_by: user.id,
+              });
+            }
+          }
+        });
+
+        // Insert new permissions
+        if (appPermissionsToInsert.length > 0) {
+          const { error: permError } = await supabase
+            .from('user_app_permissions')
+            .insert(appPermissionsToInsert);
+
+          if (permError) {
+            console.error('❌ Error saving app permissions:', permError);
+            // Don't fail user update if permissions fail
+          }
+        }
+      }
     }
 
     return NextResponse.json({ message: API_RESPONSE_MESSAGES.SUCCESS.USER_UPDATED, user: updatedUser });

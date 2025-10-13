@@ -43,6 +43,7 @@ export function useUsers() {
       phone: '',
       role: '',
       status: 'active',
+      appPermissions: {},
     },
   });
 
@@ -116,6 +117,29 @@ export function useUsers() {
   const handleEditUser = useCallback(
     (user: User) => {
       setEditingUser(user);
+      
+      // Helper function to convert app name to form field name
+      // "Truck Load Planner" → "truckLoadPlanner"
+      const toFormFieldName = (appName: string): string => {
+        return appName
+          .split(' ')
+          .map((word, index) => 
+            index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join('');
+      };
+      
+      // Map user_app_permissions to form field format
+      const appPermissions: Record<string, boolean> = {};
+      if (user.user_app_permissions && Array.isArray(user.user_app_permissions)) {
+        user.user_app_permissions.forEach((permission) => {
+          if (permission.app_permissions && permission.app_permissions.name) {
+            const fieldName = toFormFieldName(permission.app_permissions.name);
+            appPermissions[fieldName] = true;
+          }
+        });
+      }
+      
       form.reset({
         email: user.email,
         password: '',
@@ -123,6 +147,7 @@ export function useUsers() {
         phone: user.phone || '',
         role: user.role,
         status: user.status,
+        appPermissions: appPermissions,
       });
       setIsFormOpen(true);
     },

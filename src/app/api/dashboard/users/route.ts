@@ -65,6 +65,16 @@ export async function GET(request: NextRequest) {
           id,
           name,
           description
+        ),
+        user_app_permissions!user_app_permissions_user_id_fkey (
+          id,
+          app_id,
+          app_permissions!user_app_permissions_app_id_fkey (
+            id,
+            name,
+            description,
+            app_url
+          )
         )
       `, { count: 'exact' });
 
@@ -165,10 +175,19 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    const { email, password, fullName, role, phone, status } = await request.json();
+    const { email, password, fullName, role, phone, status, appPermissions } = await request.json();
 
     if (!email || !password || !fullName || !role) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });
+    }
+
+    // Validate that user has at least one app permission
+    const hasAnyPermission = appPermissions && Object.values(appPermissions).some(v => v === true);
+    
+    if (!hasAnyPermission) {
+      return NextResponse.json({ 
+        error: API_RESPONSE_MESSAGES.ERROR.APP_PERMISSION_REQUIRED 
+      }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
     // Only admin can create admin users
@@ -219,6 +238,71 @@ export async function POST(request: NextRequest) {
 
     if (createError) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Save app permissions to database
+    // First, get app IDs from app_permissions table
+    const { data: apps, error: appsError } = await supabase
+      .from('app_permissions')
+      .select('id, name, description, app_url')
+      .eq('status', 'active')
+      .is('deleted_at', null);
+
+    if (appsError || !apps || apps.length === 0) {
+      console.error('Error fetching apps:', appsError);
+      return NextResponse.json({ 
+        error: 'Failed to fetch application list' 
+      }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    }
+
+    // Map app display names to IDs
+    const appIdMap: Record<string, string> = {};
+    apps.forEach(app => {
+      appIdMap[app.name] = app.id;
+    });
+
+    // Build user_app_permissions records dynamically
+    const appPermissionsToInsert: Array<{
+      user_id: string;
+      app_id: string;
+      created_by: string;
+    }> = [];
+    
+    // Helper function to convert camelCase to display name
+    const toDisplayName = (camelCase: string): string => {
+      return camelCase
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, (str) => str.toUpperCase())
+        .trim();
+    };
+
+    // Dynamically map app permissions
+    if (appPermissions) {
+      Object.keys(appPermissions).forEach((key) => {
+        if (appPermissions[key] === true) {
+          // Convert camelCase to display name (e.g., "truckLoadPlanner" -> "Truck Load Planner")
+          const displayName = toDisplayName(key);
+          
+          if (appIdMap[displayName]) {
+            appPermissionsToInsert.push({
+              user_id: newUser.id,
+              app_id: appIdMap[displayName],
+              created_by: user.id,
+            });
+          }
+        }
+      });
+    }
+
+    if (appPermissionsToInsert.length > 0) {
+      const { error: permError } = await supabase
+        .from('user_app_permissions')
+        .insert(appPermissionsToInsert);
+
+      if (permError) {
+        console.error('❌ Error saving app permissions:', permError);
+        // Don't fail user creation if permissions fail, just log it
+      }
     }
 
     // Send welcome email to the new user

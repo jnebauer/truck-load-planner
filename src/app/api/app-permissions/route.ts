@@ -1,233 +1,165 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth-middleware';
+import { authenticateUser } from '@/lib/auth-middleware';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
+import { Database } from '@/lib/supabase/types';
 
-// GET /api/app-permissions - Get all app permissions (admin only)
-export async function GET(request: NextRequest) {
-  try {
-    // Check if user is admin
-    const { user, error: authError } = await requireAdmin(request);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_STATUS.UNAUTHORIZED });
-    }
+/**
+ * Types from Database Schema
+ */
+type AppPermissionRow = Database['public']['Tables']['app_permissions']['Row'];
+type AppPermissionInsert =
+  Database['public']['Tables']['app_permissions']['Insert'];
 
-    const supabase = await createClient();
-
-    // Get all app permissions with user details
-    const { data: permissions, error } = await supabase
-      .from('app_permissions')
-      .select(`
-        id,
-        user_id,
-        app_id,
-        granted_by,
-        granted_at,
-        expires_at,
-        is_active,
-        created_at,
-        updated_at,
-        users!app_permissions_user_id_fkey (
-          id,
-          email,
-          full_name,
-          roles (
-            name
-          )
-        ),
-        granted_by_user:users!app_permissions_granted_by_fkey (
-          id,
-          email,
-          full_name
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching app permissions:', error);
-      return NextResponse.json({ error: 'Failed to fetch app permissions' }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-    }
-
-    return NextResponse.json({
-      success: true,
-      permissions
-    });
-
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-  }
+/**
+ * App Response Type for API
+ */
+interface AppResponse {
+  id: string;
+  name: string;
+  description: string;
+  app_url: string;
+  status: string;
 }
 
-// POST /api/app-permissions - Grant app permission to user (admin only)
-export async function POST(request: NextRequest) {
+/**
+ * GET /api/app-permissions
+ * Fetch all active apps from app_permissions table
+ */
+export async function GET(request: NextRequest) {
   try {
-    // Check if user is admin
-    const { user, error: authError } = await requireAdmin(request);
+    // Verify authentication
+    const { user, error: authError } = await authenticateUser(request);
+
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_STATUS.UNAUTHORIZED });
-    }
-
-    const { userId, appId, expiresAt } = await request.json();
-
-    if (!userId || !appId) {
       return NextResponse.json(
-        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
-        { status: HTTP_STATUS.BAD_REQUEST }
+        { error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED },
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
     const supabase = await createClient();
 
-    // Check if user exists
-    const { data: targetUser, error: userError } = await supabase
-      .from('users')
-      .select('id, email, full_name')
-      .eq('id', userId)
-      .single();
+    // Fetch all active apps from database
+    const { data: apps, error } = await supabase
+      .from('app_permissions' as never)
+      .select('id, name, description, app_url, status')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .order('name', { ascending: true });
 
-    if (userError || !targetUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: HTTP_STATUS.NOT_FOUND });
+    if (error) {
+      console.error('Error fetching apps:', error);
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
     }
 
-    // Check if permission already exists
-    const { data: existingPermission } = await supabase
-      .from('app_permissions')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('app_id', appId)
-      .single();
+    // Transform to match AppResponse interface
+    const transformedApps: AppResponse[] = (
+      (apps as unknown as AppPermissionRow[]) || []
+    ).map((app) => ({
+      id: app.id,
+      name: app.name,
+      description: app.description || '',
+      app_url: app.app_url || '',
+      status: app.status,
+    }));
 
-    if (existingPermission) {
-      return NextResponse.json({ error: 'Permission already exists' }, { status: HTTP_STATUS.CONFLICT });
+    return NextResponse.json({
+      apps: transformedApps,
+      count: transformedApps.length,
+    });
+  } catch (error) {
+    console.error('Error in GET /api/app-permissions:', error);
+    return NextResponse.json(
+      { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+    );
+  }
+}
+
+/**
+ * Create App Request Body Type
+ */
+interface CreateAppRequest {
+  name: string;
+  description?: string;
+  app_url?: string;
+}
+
+/**
+ * POST /api/app-permissions
+ * Create a new app (Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Verify authentication
+    const { user, error: authError } = await authenticateUser(request);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: authError || API_RESPONSE_MESSAGES.ERROR.UNAUTHORIZED },
+        { status: HTTP_STATUS.UNAUTHORIZED }
+      );
     }
 
-    // Create new permission
-    const { data: permission, error } = await supabase
-      .from('app_permissions')
-      .insert({
-        user_id: userId,
-        app_id: appId,
-        granted_by: user.id,
-        expires_at: expiresAt || null,
-        is_active: true
-      })
+    // Check if user is admin
+    if (!user.role || user.role !== 'admin') {
+      return NextResponse.json(
+        { error: API_RESPONSE_MESSAGES.ERROR.INSUFFICIENT_PERMISSIONS },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
+    }
+
+    const supabase = await createClient();
+    const body = (await request.json()) as CreateAppRequest;
+    const { name, description, app_url } = body;
+
+    if (!name) {
+      return NextResponse.json(
+        { error: 'App name is required' },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
+    }
+
+    // Insert new app
+    const appData: AppPermissionInsert = {
+      name,
+      description: description || null,
+      app_url: app_url || null,
+      status: 'active',
+      created_by: user.id,
+      updated_by: user.id,
+    };
+
+    const { data: newApp, error } = await supabase
+      .from('app_permissions' as never)
+      .insert(appData as never)
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating app permission:', error);
-      return NextResponse.json({ error: 'Failed to create app permission' }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-    }
-
-    return NextResponse.json({
-      success: true,
-      permission: {
-        ...permission,
-        user: targetUser
-      }
-    });
-
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-  }
-}
-
-// PUT /api/app-permissions - Update app permission (admin only)
-export async function PUT(request: NextRequest) {
-  try {
-    // Check if user is admin
-    const { user, error: authError } = await requireAdmin(request);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_STATUS.UNAUTHORIZED });
-    }
-
-    const { id, isActive, expiresAt } = await request.json();
-
-    if (!id) {
+      console.error('Error creating app:', error);
       return NextResponse.json(
-        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
-        { status: HTTP_STATUS.BAD_REQUEST }
+        { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
       );
     }
 
-    const supabase = await createClient();
-
-    // Update permission
-    const { data: permission, error } = await supabase
-      .from('app_permissions')
-      .update({
-        is_active: isActive,
-        expires_at: expiresAt || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select(`
-        *,
-        users!app_permissions_user_id_fkey (
-          id,
-          email,
-          full_name
-        )
-      `)
-      .single();
-
-    if (error) {
-      console.error('Error updating app permission:', error);
-      return NextResponse.json({ error: 'Failed to update app permission' }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-    }
-
-    return NextResponse.json({
-      success: true,
-      permission
-    });
-
+    return NextResponse.json(
+      {
+        message: 'App created successfully',
+        app: newApp,
+      },
+      { status: HTTP_STATUS.CREATED }
+    );
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-  }
-}
-
-// DELETE /api/app-permissions - Revoke app permission (admin only)
-export async function DELETE(request: NextRequest) {
-  try {
-    // Check if user is admin
-    const { user, error: authError } = await requireAdmin(request);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_STATUS.UNAUTHORIZED });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS },
-        { status: HTTP_STATUS.BAD_REQUEST }
-      );
-    }
-
-    const supabase = await createClient();
-
-    // Delete permission
-    const { error } = await supabase
-      .from('app_permissions')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting app permission:', error);
-      return NextResponse.json({ error: 'Failed to delete app permission' }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'App permission revoked successfully'
-    });
-
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    console.error('Error in POST /api/app-permissions:', error);
+    return NextResponse.json(
+      { error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+    );
   }
 }

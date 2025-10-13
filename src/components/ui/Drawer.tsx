@@ -61,11 +61,11 @@ export default function Drawer({
       
       {/* Drawer with smooth slide animation */}
       <div className="fixed right-0 top-0 h-full w-full max-w-full">
-        <div className={`h-full bg-white shadow-xl ${sizeClasses[size]} ml-auto transform transition-transform duration-300 ease-in-out ${
+        <div className={`h-full bg-white shadow-xl ${sizeClasses[size]} ml-auto transform transition-transform duration-300 ease-in-out flex flex-col ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}>
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div className="flex-shrink-0 flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             <button
               onClick={handleBackdropClick}
@@ -76,7 +76,7 @@ export default function Drawer({
           </div>
           
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-hidden">
             {children}
           </div>
         </div>

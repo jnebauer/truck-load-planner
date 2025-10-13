@@ -1,5 +1,18 @@
 // User Management Interfaces
 
+export interface AppPermission {
+  id: string;
+  name: string;
+  description: string | null;
+  app_url: string;
+}
+
+export interface UserAppPermission {
+  id: string;
+  app_id: string;
+  app_permissions: AppPermission;
+}
+
 export interface User extends Record<string, unknown> {
   id: string;
   email: string;
@@ -9,6 +22,7 @@ export interface User extends Record<string, unknown> {
   status: 'active' | 'inactive' | 'pending';
   created_at: string;
   updated_at: string;
+  user_app_permissions?: UserAppPermission[];
 }
 
 export interface Role {

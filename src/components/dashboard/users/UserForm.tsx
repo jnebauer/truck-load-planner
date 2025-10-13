@@ -12,10 +12,12 @@ import {
   EyeOff,
   RefreshCw,
 } from 'lucide-react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
 import { User, Role } from './types';
 import { UserFormType } from './formTypes';
 import { generateSecurePassword } from '@/lib/password-utils';
+import { useApps } from '@/hooks/auth/useApps';
+import { APP_NAMES } from '@/lib/constants/apps';
 
 interface UserFormProps {
   editingUser: User | null;
@@ -28,6 +30,7 @@ interface UserFormProps {
   errors: FieldErrors<UserFormType>;
   register: UseFormRegister<UserFormType>;
   setValue: (name: keyof UserFormType, value: string) => void;
+  watch: UseFormWatch<UserFormType>;
 }
 
 export default function UserForm({
@@ -39,17 +42,31 @@ export default function UserForm({
   errors,
   register,
   setValue,
+  watch,
 }: UserFormProps) {
   const [showPassword, setShowPassword] = React.useState(false);
+  const { apps, loading: appsLoading } = useApps();
+  const appPermissions = watch('appPermissions') || {};
 
   const handleGeneratePassword = () => {
     const randomPassword = generateSecurePassword();
     setValue('password', randomPassword);
   };
 
+  // Helper function to convert app name to form field name
+  // "Truck Load Planner" → "truckLoadPlanner"
+  const toFormFieldName = (appName: string): string => {
+    return appName
+      .split(' ')
+      .map((word, index) => 
+        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
+      .join('');
+  };
+
   return (
-    <form onSubmit={onSubmit} className="flex-1 flex flex-col">
-      <div className="flex-1 px-6 py-2 space-y-6 overflow-y-auto">
+    <form onSubmit={onSubmit} className="h-full flex flex-col">
+      <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto">
         {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,10 +207,64 @@ export default function UserForm({
             <option value="pending">Pending</option>
           </select>
         </div>
+
+        {/* App Permissions - Dynamic from Database */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            App Permissions
+          </label>
+          
+          {appsLoading ? (
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <p className="text-sm text-gray-500">Loading apps...</p>
+            </div>
+          ) : apps.length === 0 ? (
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <p className="text-sm text-gray-500">No apps available</p>
+            </div>
+          ) : (
+            <div className="space-y-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              {apps.map((app) => {
+                const fieldName = toFormFieldName(app.name);
+                // Check if this app is already checked (from editing user) or default for new user
+                const isChecked = editingUser 
+                  ? appPermissions[fieldName] === true 
+                  : app.name === APP_NAMES.TRUCK_LOAD_PLANNER;
+                const isDefault = app.name === APP_NAMES.TRUCK_LOAD_PLANNER;
+                
+                return (
+                  <div key={app.id} className="flex items-center">
+                    <input
+                      {...register(`appPermissions.${fieldName}`)}
+                      type="checkbox"
+                      defaultChecked={isChecked}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label className="ml-3 block text-sm text-gray-900">
+                      <span className="font-medium">
+                        {app.name}
+                        {!editingUser && isDefault && <span className="ml-1 text-xs text-gray-500">(Default)</span>}
+                      </span>
+                      {app.description && (
+                        <span className="block text-xs text-gray-500">
+                          {app.description}
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                );
+              })}
+
+              <p className="mt-2 text-xs text-gray-500 italic">
+                ⚠️ User must have at least one app permission to access the system
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Form Actions */}
-      <div className="absolute bottom-0 w-full flex items-center justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div className="flex-shrink-0 flex items-center justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
         <button
           type="button"
           onClick={onClose}

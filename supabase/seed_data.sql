@@ -4,6 +4,18 @@
 -- Clear existing data (in correct order to avoid foreign key constraints)
 -- Only delete if tables exist
 DO $$ BEGIN
+    DELETE FROM user_app_permissions;
+EXCEPTION
+    WHEN undefined_table THEN null;
+END $$;
+
+DO $$ BEGIN
+    DELETE FROM app_permissions;
+EXCEPTION
+    WHEN undefined_table THEN null;
+END $$;
+
+DO $$ BEGIN
     DELETE FROM role_permissions;
 EXCEPTION
     WHEN undefined_table THEN null;
@@ -60,7 +72,35 @@ INSERT INTO users (id, email, password_hash, full_name, role_id, status, created
 -- Inactive user for testing
 ('770e8400-e29b-41d4-a716-446655440010', 'inactive@trucker.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/9yKjK2K', 'Inactive User', '550e8400-e29b-41d4-a716-446655440003', 'inactive', NOW(), NOW(), false, '+1-555-0110');
 
+-- ============================================================================
+-- APP_PERMISSIONS - Application Master Data (Apps List)
+-- ============================================================================
+INSERT INTO app_permissions (id, name, description, app_url, status, created_at, created_by, updated_at, updated_by) VALUES
+(
+    '990e8400-e29b-41d4-a716-446655440001', 
+    'Truck Load Planner', 
+    'Advanced truck loading operations management with intelligent storage logistics and route optimization.',
+    '/dashboard',
+    'active', 
+    NOW(), 
+    '770e8400-e29b-41d4-a716-446655440001', 
+    NOW(), 
+    '770e8400-e29b-41d4-a716-446655440001'
+),
+(
+    '990e8400-e29b-41d4-a716-446655440002', 
+    'Capacity Planner', 
+    'Comprehensive resource planning and workload distribution system for optimal project management and team productivity.',
+    '/capacity-planner',
+    'active', 
+    NOW(), 
+    '770e8400-e29b-41d4-a716-446655440001', 
+    NOW(), 
+    '770e8400-e29b-41d4-a716-446655440001'
+);
 
+-- Note: user_app_permissions will be managed through the admin UI
+-- Admins can assign apps to users from the /dashboard/users page
 
 -- Update last login times for some users
 UPDATE users SET last_login = NOW() - INTERVAL '2 hours' WHERE email = 'admin@trucker.com';
@@ -76,7 +116,17 @@ UNION ALL
 SELECT 
     'Users' as table_name, 
     COUNT(*) as count 
-FROM users;
+FROM users
+UNION ALL
+SELECT 
+    'App Permissions' as table_name, 
+    COUNT(*) as count 
+FROM app_permissions
+UNION ALL
+SELECT 
+    'User App Permissions' as table_name, 
+    COUNT(*) as count 
+FROM user_app_permissions;
 
 -- Display login credentials for testing
 SELECT 

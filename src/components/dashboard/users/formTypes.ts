@@ -6,4 +6,5 @@ export type UserFormType = {
   phone: string;
   role: string;
   status: 'active' | 'inactive' | 'pending';
+  appPermissions?: Record<string, boolean>;
 };

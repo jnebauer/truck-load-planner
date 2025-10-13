@@ -8,6 +8,8 @@ import {
 } from '@/components/dashboard/users';
 import { AccessDenied, LoadingSpinner, Drawer } from '@/components/ui';
 import { useUsers } from '@/hooks/dashboard';
+import { UserFormType } from '@/components/dashboard/users/formTypes';
+import { UseFormReturn } from 'react-hook-form';
 
 export default function UsersPage() {
   const {
@@ -19,7 +21,7 @@ export default function UsersPage() {
     error,
     isFormOpen,
     editingUser,
-    form,
+    form: formRaw,
     handleCreateUser,
     handleEditUser,
     handleFormSubmit,
@@ -33,6 +35,9 @@ export default function UsersPage() {
     handlePageChange,
     handleSearch,
   } = useUsers();
+
+  // Type assertion for form
+  const form = formRaw as unknown as UseFormReturn<UserFormType>;
 
   // Check if user has permission to access this page
   if (!hasPermission('users.read')) {
@@ -100,6 +105,7 @@ export default function UsersPage() {
           errors={form.formState.errors}
           register={form.register}
           setValue={form.setValue}
+          watch={form.watch}
         />
       </Drawer>
     </div>

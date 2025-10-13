@@ -2,9 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticateUser } from '@/lib/auth-middleware';
 import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
-import { getAllActiveAppIds } from '@/components/apps/AppsConfig';
+import { Database } from '@/lib/supabase/types';
 
-// GET /api/user/apps - Get user's accessible apps
+type AppPermissionRow = Database['public']['Tables']['app_permissions']['Row'];
+
+interface UserAppResponse {
+  id: string;
+  name: string;
+  description: string;
+  app_url: string;
+  status: string;
+}
+
+interface UserAppPermissionWithApp {
+  app_id: string;
+  app_permissions: {
+    id: string;
+    name: string;
+    description: string | null;
+    app_url: string | null;
+    status: string;
+  } | null;
+}
+
+/**
+ * GET /api/user/apps
+ * Get apps that the current user has access to
+ * Admins get all active apps, regular users get only assigned apps
+ */
 export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated
@@ -15,59 +40,84 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // If user is admin, give access to all apps
+    // If user is admin, give access to all active apps
     if (user.role === 'admin') {
-      const allApps = getAllActiveAppIds();
+      const { data: allApps, error: appsError } = await supabase
+        .from('app_permissions' as never)
+        .select('id, name, description, app_url, status')
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .order('name', { ascending: true });
+
+      if (appsError) {
+        console.error('Error fetching all apps:', appsError);
+        return NextResponse.json({ 
+          error: 'Failed to fetch apps' 
+        }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      }
+
+      const transformedApps: UserAppResponse[] = (allApps as unknown as AppPermissionRow[] || []).map((app) => ({
+        id: app.id,
+        name: app.name,
+        description: app.description || '',
+        app_url: app.app_url || '',
+        status: app.status,
+      }));
+
       return NextResponse.json({
         success: true,
         userId: user.id,
-        accessibleApps: allApps,
-        permissions: allApps.map(appId => ({
-          app_id: appId,
-          granted_at: new Date().toISOString(),
-          expires_at: null,
-          is_active: true
-        }))
+        apps: transformedApps,
+        count: transformedApps.length
       });
     }
 
-    // Get user's app permissions for non-admin users
-    const { data: permissions, error } = await supabase
-      .from('app_permissions')
+    // Get user's assigned app permissions from user_app_permissions table
+    const { data: userApps, error } = await supabase
+      .from('user_app_permissions' as never)
       .select(`
         app_id,
-        granted_at,
-        expires_at,
-        is_active
+        app_permissions!user_app_permissions_app_id_fkey (
+          id,
+          name,
+          description,
+          app_url,
+          status
+        )
       `)
       .eq('user_id', user.id)
-      .eq('is_active', true)
-      .gte('expires_at', new Date().toISOString()) // Only non-expired permissions
-      .or('expires_at.is.null'); // Include permissions without expiration
+      .is('deleted_at', null);
 
     if (error) {
       console.error('Error fetching user app permissions:', error);
-      return NextResponse.json({ error: 'Failed to fetch app permissions' }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      return NextResponse.json({ 
+        error: 'Failed to fetch app permissions' 
+      }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
     }
 
-    // Filter out expired permissions
-    const validPermissions = permissions?.filter(permission => {
-      if (!permission.expires_at) return true;
-      return new Date(permission.expires_at) > new Date();
-    }) || [];
-
-    // Extract app IDs
-    const accessibleApps = validPermissions.map(p => p.app_id);
+    // Transform and filter active apps
+    const accessibleApps: UserAppResponse[] = (userApps as unknown as UserAppPermissionWithApp[] || [])
+      .map((item) => item.app_permissions)
+      .filter((app): app is NonNullable<typeof app> => app !== null && app.status === 'active')
+      .map((app) => ({
+        id: app.id,
+        name: app.name,
+        description: app.description || '',
+        app_url: app.app_url || '',
+        status: app.status,
+      }));
 
     return NextResponse.json({
       success: true,
       userId: user.id,
-      accessibleApps,
-      permissions: validPermissions
+      apps: accessibleApps,
+      count: accessibleApps.length
     });
 
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+    return NextResponse.json({ 
+      error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR 
+    }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }

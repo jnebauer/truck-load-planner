@@ -106,6 +106,7 @@ export const userFormSchema = z.object({
     .string()
     .min(1, VALIDATION_MESSAGES.ROLE_REQUIRED),
   status: z.enum(['active', 'inactive', 'pending']),
+  appPermissions: z.record(z.string(), z.boolean()).optional().default({}),
 });
 
 // Settings validation schemas

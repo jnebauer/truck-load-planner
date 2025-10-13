@@ -60,6 +60,7 @@ export const API_RESPONSE_MESSAGES = {
     
     // Permission Errors
     INVALID_PERMISSIONS: 'Invalid permissions provided',
+    APP_PERMISSION_REQUIRED: 'User must have at least one app permission',
     
     // Server Errors
     SERVER_ERROR: 'Internal server error',
