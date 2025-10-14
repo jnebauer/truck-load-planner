@@ -17,7 +17,7 @@ export default function UsersStatsCards({ stats }: UsersStatsCardsProps) {
             <Users className="h-6 w-6 text-blue-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-500">Total Employees</p>
+            <p className="text-sm font-medium text-gray-500">Total Users</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.totalUsers}</p>
           </div>
         </div>
@@ -28,7 +28,7 @@ export default function UsersStatsCards({ stats }: UsersStatsCardsProps) {
             <UserCheck className="h-6 w-6 text-green-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-500">Active Employees</p>
+            <p className="text-sm font-medium text-gray-500">Active Users</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.activeUsers}</p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export default function UsersStatsCards({ stats }: UsersStatsCardsProps) {
             <Users className="h-6 w-6 text-red-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-500">Inactive Employees</p>
+            <p className="text-sm font-medium text-gray-500">Inactive Users</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.inactiveUsers}</p>
           </div>
         </div>

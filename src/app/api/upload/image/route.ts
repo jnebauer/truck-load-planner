@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: API_RESPONSE_MESSAGES.SUCCESS.UPLOAD_SUCCESS,
+        // message: API_RESPONSE_MESSAGES.SUCCESS.UPLOAD_SUCCESS,
         data: {
           url: urlData.publicUrl,
           path: storagePath,

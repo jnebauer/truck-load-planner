@@ -163,6 +163,17 @@ export async function PUT(
 
         // Helper function to convert camelCase to display name
         const toDisplayName = (camelCase: string): string => {
+          // Special cases for acronyms
+          const specialCases: Record<string, string> = {
+            'ledScreenCalculator': 'LED Screen Calculator',
+            'truckLoadPlanner': 'Truck Load Planner',
+            'capacityPlanner': 'Capacity Planner',
+          };
+          
+          if (specialCases[camelCase]) {
+            return specialCases[camelCase];
+          }
+          
           return camelCase
             .replace(/([A-Z])/g, ' $1')
             .replace(/^./, (str) => str.toUpperCase())

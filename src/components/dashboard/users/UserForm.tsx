@@ -194,7 +194,7 @@ export default function UserForm({
           >
             <option value="">Select a role</option>
             {roles
-              .filter((role) => role.name.toLowerCase() !== 'client')
+              .filter((role) => role.name.toLowerCase() !== 'clients')
               .map((role) => (
                 <option key={role.id} value={role.name}>
                   {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
@@ -298,7 +298,7 @@ export default function UserForm({
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              {editingUser ? 'Update Employee' : 'Create Employee'}
+              {editingUser ? 'Update User' : 'Create User'}
             </>
           )}
         </button>

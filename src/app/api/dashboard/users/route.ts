@@ -92,11 +92,11 @@ export async function GET(request: NextRequest) {
         usersQuery = usersQuery.eq('role_id', roleData.id);
       }
     } else {
-      // For users page, exclude Client role
+      // For users page, exclude clients role
       const { data: clientRoleData } = await supabase
         .from('roles')
         .select('id')
-        .eq('name', 'Client')
+        .eq('name', 'clients')
         .single();
       
       if (clientRoleData) {
@@ -120,10 +120,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.SERVER_ERROR }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
     }
 
-    // Get total counts by status (without search filter)
-    const { data: statusCounts, error: statusError, count: totalCount } = await supabase
+    // Get total counts by status (without search filter, excluding clients role)
+    let statusQuery = supabase
       .from('users')
       .select('status', { count: 'exact' });
+    
+    // Exclude clients role from stats
+    const { data: clientRoleForStats } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', 'clients')
+      .single();
+    
+    if (clientRoleForStats) {
+      statusQuery = statusQuery.neq('role_id', clientRoleForStats.id);
+    }
+    
+    const { data: statusCounts, error: statusError, count: totalCount } = await statusQuery;
 
     if (statusError) {
       console.error('Error getting status counts:', statusError);
@@ -311,6 +324,17 @@ export async function POST(request: NextRequest) {
     
     // Helper function to convert camelCase to display name
     const toDisplayName = (camelCase: string): string => {
+      // Special cases for acronyms
+      const specialCases: Record<string, string> = {
+        'ledScreenCalculator': 'LED Screen Calculator',
+        'truckLoadPlanner': 'Truck Load Planner',
+        'capacityPlanner': 'Capacity Planner',
+      };
+      
+      if (specialCases[camelCase]) {
+        return specialCases[camelCase];
+      }
+      
       return camelCase
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, (str) => str.toUpperCase())

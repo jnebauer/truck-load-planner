@@ -13,6 +13,11 @@ export const APP_UI_METADATA: Record<string, { icon: string; color: string; isEx
     color: 'green',
     isExternal: false,
   },
+  'LED Screen Calculator': {
+    icon: 'Monitor',
+    color: 'gray',
+    isExternal: true,
+  },
 };
 
 /**

@@ -94,7 +94,7 @@ export default function UsersPage() {
       <Drawer
         isOpen={isFormOpen}
         onClose={handleFormClose}
-        title={editingUser ? 'Edit Employee' : 'Create New Employee'}
+        title={editingUser ? 'Edit User' : 'Create User'}
         size="md"
       >
         <UserForm
