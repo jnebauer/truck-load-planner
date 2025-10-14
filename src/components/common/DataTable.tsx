@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ChevronUp, 
   ChevronDown, 
@@ -91,12 +91,32 @@ export default function DataTable<T extends Record<string, unknown>>({
   paginationLoading = false,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<{
     key: string | null;
     direction: 'asc' | 'desc';
   }>({ key: null, direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
+
+  // Debounce search term for server-side pagination
+  useEffect(() => {
+    if (serverSidePagination && onSearch) {
+      const handler = setTimeout(() => {
+        setDebouncedSearchTerm(searchTerm);
+      }, 500);
+
+      return () => clearTimeout(handler);
+    }
+  }, [searchTerm, serverSidePagination, onSearch]);
+
+  // Trigger search when debounced term changes (skip initial undefined value)
+  useEffect(() => {
+    if (serverSidePagination && onSearch && debouncedSearchTerm !== undefined) {
+      onSearch(debouncedSearchTerm);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, serverSidePagination]);
 
   // Use server-side pagination values if provided, otherwise use local state
   const effectiveCurrentPage = serverSidePagination ? (serverCurrentPage || 1) : currentPage;
@@ -166,9 +186,8 @@ export default function DataTable<T extends Record<string, unknown>>({
 
   const handleSearch = (value: string) => {
     setSearchTerm(value); // Always update local state to keep input value
-    if (serverSidePagination && onSearch) {
-      onSearch(value);
-    }
+    // For server-side pagination, debouncing is handled by useEffect above
+    // For client-side, search is applied immediately in processedData
   };
 
   const handlePageChange = (page: number) => {

@@ -230,6 +230,40 @@ export const profileUpdateSchema = z.object({
     .or(z.literal('')),
 });
 
+// Inventory form validation schema
+export const inventoryFormSchema = z.object({
+  // Item details
+  clientId: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
+  projectId: z.string().optional().or(z.literal('')),
+  label: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, 'Item label must be at least 2 characters')
+    .max(200, 'Item label must not exceed 200 characters'),
+  sku: z.string().optional().or(z.literal('')),
+  description: z.string().optional().or(z.literal('')),
+  lengthMm: z.coerce.number().positive('Length must be positive'),
+  widthMm: z.coerce.number().positive('Width must be positive'),
+  heightMm: z.coerce.number().positive('Height must be positive'),
+  weightKg: z.coerce.number().nonnegative('Weight cannot be negative'),
+  stackability: z.enum(['stackable', 'non_stackable', 'top_only', 'bottom_only']),
+  topLoadRatingKg: z.coerce.number().nonnegative('Top load rating cannot be negative').optional(),
+  orientationLocked: z.boolean().optional(),
+  fragile: z.boolean().optional(),
+  keepUpright: z.boolean().optional(),
+  priority: z.coerce.number().int('Priority must be an integer').positive('Priority must be positive').optional().nullable(),
+  // Inventory unit details
+  palletNo: z.string().optional().or(z.literal('')),
+  inventoryDate: z.string().optional().or(z.literal('')),
+  locationSite: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
+  locationAisle: z.string().optional().or(z.literal('')),
+  locationBay: z.string().optional().or(z.literal('')),
+  locationLevel: z.string().optional().or(z.literal('')),
+  locationNotes: z.string().optional().or(z.literal('')),
+  quantity: z.coerce.number().int('Quantity must be an integer').positive('Quantity must be positive').optional(),
+  status: z.enum(['in_storage', 'reserved', 'on_truck', 'onsite', 'returned']),
+});
+
 // Type exports
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -241,3 +275,4 @@ export type ClientFormSchemaData = z.infer<typeof clientFormSchema>;
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
 export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;
+export type InventoryFormData = z.infer<typeof inventoryFormSchema>;

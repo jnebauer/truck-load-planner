@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,17 +122,19 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       <div className="flex items-start space-x-4">
         {/* Preview */}
         {preview ? (
-          <div className="relative w-32 h-32 rounded-lg border-2 border-gray-300 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative w-32 h-32 rounded-lg border-2 border-gray-300 overflow-hidden bg-gray-100">
+            <Image
               src={preview}
               alt="Preview"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="128px"
+              unoptimized={preview.startsWith('data:')}
             />
             <button
               type="button"
               onClick={handleRemove}
-              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
               disabled={uploading}
             >
               <X className="h-4 w-4" />

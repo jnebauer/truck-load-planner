@@ -35,6 +35,11 @@ export const API_RESPONSE_MESSAGES = {
     PROJECT_UPDATED: 'Project updated successfully',
     PROJECT_DELETED: 'Project deleted successfully',
     
+    // Inventory
+    INVENTORY_CHECKIN: 'Inventory checked in successfully',
+    INVENTORY_UPDATED: 'Inventory updated successfully',
+    INVENTORY_DELETED: 'Inventory deleted successfully',
+    
     // Upload
     UPLOAD_SUCCESS: 'File uploaded successfully',
   },
@@ -179,6 +184,11 @@ export const TOAST_MESSAGES = {
     PROJECT_CREATED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_CREATED + '!',
     PROJECT_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_UPDATED + '!',
     PROJECT_DELETED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_DELETED + '!',
+    
+    // Inventory
+    INVENTORY_CHECKIN: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_CHECKIN + '!',
+    INVENTORY_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_UPDATED + '!',
+    INVENTORY_DELETED: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_DELETED + '!',
     
     // Generic
     CREATED: 'Created successfully!',

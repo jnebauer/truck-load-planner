@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { getFilteredNavigation } from '@/lib/navigation';
+import { getFilteredNavigation, NavigationItem } from '@/lib/navigation';
 import { User, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,13 +41,41 @@ export default function Sidebar({ user }: SidebarProps) {
   
   console.log('🔍 Final filtered items:', filteredItems.map(item => item.name));
 
-  const isActive = (href: string) => pathname.startsWith(href);
+  const isActive = (href: string) => {
+    // Exact match only
+    // This ensures '/dashboard' doesn't match '/dashboard/inventory'
+    return pathname === href;
+  };
+
+  const isParentActive = (item: NavigationItem) => {
+    // If item has a direct href, check if it's active
+    if (item.href) return isActive(item.href);
+    
+    // If item has submenu, check if any submenu item is active
+    if (item.submenu) {
+      return item.submenu.some(sub => pathname === sub.href);
+    }
+    
+    return false;
+  };
 
   const toggleSubmenu = (name: string | undefined) => {
     if (name) {
       setOpenMenu(openMenu === name ? null : name);
     }
   };
+
+  // Auto-open submenu if one of its items is active
+  useEffect(() => {
+    filteredItems.forEach((item) => {
+      if (item.submenu) {
+        const hasActiveSubmenuItem = item.submenu.some(sub => pathname === sub.href);
+        if (hasActiveSubmenuItem) {
+          setOpenMenu(item.name);
+        }
+      }
+    });
+  }, [pathname, filteredItems]);
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
@@ -60,7 +88,7 @@ export default function Sidebar({ user }: SidebarProps) {
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {filteredItems.map((item) => {
           const Icon = item.icon;
-          const active = item.href ? isActive(item.href) : false;
+          const active = isParentActive(item);
           const isOpen = openMenu === item.name && item.submenu;
 
           return (

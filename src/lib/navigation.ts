@@ -59,7 +59,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: 'inventory',
     name: 'Inventory',
-    href: '',
+    href: '/dashboard/inventory',
     icon: Package,
     permission: 'navigation.inventory',
     actions: {
@@ -98,11 +98,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: 'import',
     name: 'Import',
-    href: '',
+    href: '/dashboard/import',
     icon: Upload,
     permission: 'navigation.import',
     actions: {
-      view: 'navigation.import',
+      view: 'inventory.create',
     },
   },
   {

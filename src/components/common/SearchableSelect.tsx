@@ -27,6 +27,8 @@ interface SearchableSelectProps {
   required?: boolean;
   icon?: React.ReactNode;
   selectedLabel?: string; // Optional: Display label when editing
+  filters?: Record<string, string>; // Additional query parameters (e.g., { clientId: '123' })
+  dataKey?: string; // Key to access data in response (default: 'clients')
 }
 
 export default function SearchableSelect({
@@ -40,6 +42,8 @@ export default function SearchableSelect({
   required = false,
   icon,
   selectedLabel,
+  filters = {},
+  dataKey = 'clients',
 }: SearchableSelectProps) {
   const { authenticatedFetch } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -52,18 +56,39 @@ export default function SearchableSelect({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  
+  // Create stable filter key to prevent infinite loops
+  const filtersKey = JSON.stringify(filters);
+  
+  // Reset options when filters change
+  useEffect(() => {
+    setOptions([]);
+    setInitialFetchDone(false);
+    setPage(1);
+    setHasMore(true);
+  }, [filtersKey]);
 
   // Fetch options with search and pagination
   const fetchOptions = useCallback(async (pageNum: number, search: string, append: boolean = false) => {
     try {
       setLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: '20',
+        search: search,
+        ...filters, // Spread additional filters
+      });
+      
       const response = await authenticatedFetch(
-        `${apiEndpoint}?page=${pageNum}&limit=5&search=${encodeURIComponent(search)}`
+        `${apiEndpoint}?${params.toString()}`
       );
       
       if (response.ok) {
         const data = await response.json();
-        const formattedOptions = (data.clients || []).map((item: ClientItem) => ({
+        const items = data[dataKey] || data.data || [];
+        const formattedOptions = items.map((item: ClientItem) => ({
           value: item.id,
           label: item.company_name || item.full_name || item.name || 'Unnamed',
         }));
@@ -82,19 +107,28 @@ export default function SearchableSelect({
     } finally {
       setLoading(false);
     }
-  }, [apiEndpoint, authenticatedFetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiEndpoint, authenticatedFetch, filtersKey, dataKey]);
 
-  // Fetch all clients initially if a value is provided (for edit mode)
+  // Fetch all options initially if a value is provided (for edit mode)
   useEffect(() => {
     const fetchInitialOptions = async () => {
       if (value && options.length === 0 && !initialFetchDone) {
         try {
+          const params = new URLSearchParams({
+            page: '1',
+            limit: '1000',
+            search: '',
+            ...filters,
+          });
+          
           const response = await authenticatedFetch(
-            `${apiEndpoint}?page=1&limit=1000&search=`
+            `${apiEndpoint}?${params.toString()}`
           );
           if (response.ok) {
             const data = await response.json();
-            const formattedOptions = (data.clients || []).map((item: ClientItem) => ({
+            const items = data[dataKey] || data.data || [];
+            const formattedOptions = items.map((item: ClientItem) => ({
               value: item.id,
               label: item.company_name || item.full_name || item.name || 'Unnamed',
             }));
@@ -109,18 +143,21 @@ export default function SearchableSelect({
 
     fetchInitialOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, apiEndpoint, authenticatedFetch]);
+  }, [value, apiEndpoint, authenticatedFetch, dataKey]);
 
   // Initial fetch when dropdown opens
   useEffect(() => {
     if (isOpen) {
       fetchOptions(1, '', false);
     }
-  }, [isOpen, fetchOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Debounced search
   useEffect(() => {
     if (!isOpen) return;
+    
+    if (!searchTerm) return; // Don't search on empty string
 
     const handler = setTimeout(() => {
       setPage(1);
@@ -129,7 +166,8 @@ export default function SearchableSelect({
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [searchTerm, isOpen, fetchOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, isOpen]);
 
   // Load more on scroll
   const handleScroll = useCallback(() => {
@@ -137,14 +175,12 @@ export default function SearchableSelect({
 
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
     
-    console.log('🔄 Scroll Event:', { scrollTop, scrollHeight, clientHeight, hasMore, loading });
-    
     // Trigger when near bottom (50px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 50) {
-      console.log('✅ Loading more options...');
       fetchOptions(page + 1, searchTerm, true);
     }
-  }, [loading, hasMore, page, searchTerm, fetchOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, hasMore, page, searchTerm]);
 
   // Close dropdown on outside click
   useEffect(() => {

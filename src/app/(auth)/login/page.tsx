@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLogin } from '@/hooks/auth';
-import { Eye, EyeOff, Truck, BarChart3 } from 'lucide-react';
+import { Eye, EyeOff, Truck, BarChart3, Package } from 'lucide-react';
 import { UI_TRANSLATIONS } from '@/lib/translations';
 
 export default function LoginPage() {
@@ -26,6 +26,9 @@ export default function LoginPage() {
         <div className="flex justify-center items-center space-x-2 mb-6">
           <div className="bg-blue-600 p-2 rounded-lg">
             <BarChart3 className="h-8 w-8 text-white" />
+          </div>
+          <div className="bg-gray-600 p-2 rounded-lg">
+            <Package className="h-8 w-8 text-white" />
           </div>
           <div className="bg-green-600 p-2 rounded-lg">
             <Truck className="h-8 w-8 text-white" />

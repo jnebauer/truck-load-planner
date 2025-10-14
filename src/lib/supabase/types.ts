@@ -481,6 +481,285 @@ export type Database = {
           }
         ]
       }
+      items: {
+        Row: {
+          id: string
+          client_id: string
+          project_id: string | null
+          label: string
+          sku: string | null
+          description: string | null
+          length_mm: number
+          width_mm: number
+          height_mm: number
+          weight_kg: number
+          volume_m3: number | null
+          stackability: 'stackable' | 'non_stackable' | 'top_only' | 'bottom_only'
+          top_load_rating_kg: number | null
+          orientation_locked: boolean | null
+          fragile: boolean | null
+          keep_upright: boolean | null
+          priority: number | null
+          qr_code: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          project_id?: string | null
+          label: string
+          sku?: string | null
+          description?: string | null
+          length_mm: number
+          width_mm: number
+          height_mm: number
+          weight_kg: number
+          volume_m3?: never
+          stackability?: 'stackable' | 'non_stackable' | 'top_only' | 'bottom_only'
+          top_load_rating_kg?: number | null
+          orientation_locked?: boolean | null
+          fragile?: boolean | null
+          keep_upright?: boolean | null
+          priority?: number | null
+          qr_code?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          project_id?: string | null
+          label?: string
+          sku?: string | null
+          description?: string | null
+          length_mm?: number
+          width_mm?: number
+          height_mm?: number
+          weight_kg?: number
+          volume_m3?: never
+          stackability?: 'stackable' | 'non_stackable' | 'top_only' | 'bottom_only'
+          top_load_rating_kg?: number | null
+          orientation_locked?: boolean | null
+          fragile?: boolean | null
+          keep_upright?: boolean | null
+          priority?: number | null
+          qr_code?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      inventory_units: {
+        Row: {
+          id: string
+          item_id: string
+          client_id: string
+          project_id: string | null
+          pallet_no: string | null
+          inventory_date: string
+          location_site: string
+          location_aisle: string | null
+          location_bay: string | null
+          location_level: string | null
+          location_notes: string | null
+          quantity: number | null
+          status: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          last_inspection_at: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          client_id: string
+          project_id?: string | null
+          pallet_no?: string | null
+          inventory_date?: string
+          location_site: string
+          location_aisle?: string | null
+          location_bay?: string | null
+          location_level?: string | null
+          location_notes?: string | null
+          quantity?: number | null
+          status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          last_inspection_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          client_id?: string
+          project_id?: string | null
+          pallet_no?: string | null
+          inventory_date?: string
+          location_site?: string
+          location_aisle?: string | null
+          location_bay?: string | null
+          location_level?: string | null
+          location_notes?: string | null
+          quantity?: number | null
+          status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          last_inspection_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_units_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_units_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      media: {
+        Row: {
+          id: string
+          inventory_unit_id: string
+          item_id: string | null
+          url: string
+          tag: 'pallet' | 'label' | 'racking' | 'onsite'
+          content_type: string | null
+          width_px: number | null
+          height_px: number | null
+          file_size_bytes: number | null
+          taken_at: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          inventory_unit_id: string
+          item_id?: string | null
+          url: string
+          tag: 'pallet' | 'label' | 'racking' | 'onsite'
+          content_type?: string | null
+          width_px?: number | null
+          height_px?: number | null
+          file_size_bytes?: number | null
+          taken_at?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          inventory_unit_id?: string
+          item_id?: string | null
+          url?: string
+          tag?: 'pallet' | 'label' | 'racking' | 'onsite'
+          content_type?: string | null
+          width_px?: number | null
+          height_px?: number | null
+          file_size_bytes?: number | null
+          taken_at?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_inventory_unit_id_fkey"
+            columns: ["inventory_unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      movements: {
+        Row: {
+          id: string
+          inventory_unit_id: string
+          from_status: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned' | null
+          to_status: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          from_location: Record<string, unknown> | null
+          to_location: Record<string, unknown> | null
+          note: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          inventory_unit_id: string
+          from_status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned' | null
+          to_status: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          from_location?: Record<string, unknown> | null
+          to_location?: Record<string, unknown> | null
+          note?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          inventory_unit_id?: string
+          from_status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned' | null
+          to_status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+          from_location?: Record<string, unknown> | null
+          to_location?: Record<string, unknown> | null
+          note?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movements_inventory_unit_id_fkey"
+            columns: ["inventory_unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -492,6 +771,9 @@ export type Database = {
       user_role: 'admin' | 'pm' | 'warehouse' | 'client_viewer'
       user_status: 'active' | 'inactive' | 'blocked'
       permission_type: 'users.create' | 'users.read' | 'users.update' | 'users.delete' | 'clients.create' | 'clients.read' | 'clients.update' | 'clients.delete' | 'inventory.create' | 'inventory.read' | 'inventory.update' | 'inventory.delete' | 'projects.create' | 'projects.read' | 'projects.update' | 'projects.delete' | 'load_plans.create' | 'load_plans.read' | 'load_plans.update' | 'load_plans.delete' | 'reports.generate' | 'reports.view'
+      stackability: 'stackable' | 'non_stackable' | 'top_only' | 'bottom_only'
+      inventory_status: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned'
+      media_tag: 'pallet' | 'label' | 'racking' | 'onsite'
     }
     CompositeTypes: {
       [_ in never]: never
