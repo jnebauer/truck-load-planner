@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateUser } from '@/lib/auth-middleware';
 import { HTTP_STATUS, API_RESPONSE_MESSAGES } from '@/lib/backend/constants';
 
 /**
@@ -18,6 +18,17 @@ import { HTTP_STATUS, API_RESPONSE_MESSAGES } from '@/lib/backend/constants';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check if user is authenticated
+    const { user, error: authError } = await authenticateUser(request);
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          error: authError || 'Unauthorized',
+        },
+        { status: HTTP_STATUS.UNAUTHORIZED }
+      );
+    }
+
     // Get form data
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -61,16 +72,27 @@ export async function POST(request: NextRequest) {
     // Convert file to array buffer
     const bytes = await file.arrayBuffer();
 
-    // Initialize Supabase client
-    const supabase = await createClient();
+    // Initialize Supabase client with service role for storage operations
+    // We've already authenticated the user above, so it's safe to use service role
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role bypasses RLS
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('images') // Bucket name
       .upload(storagePath, bytes, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false,
+        upsert: true, // Allow overwrite if file exists
       });
 
     if (uploadError) {

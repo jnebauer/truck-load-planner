@@ -312,11 +312,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     const token = getAccessToken();
     
+    // Start with custom headers from options
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {}),
     };
 
+    // Only set Content-Type if it's not already set and body is not FormData
+    // FormData needs browser to set Content-Type with boundary automatically
+    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Add authorization token
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

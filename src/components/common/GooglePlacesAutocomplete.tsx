@@ -20,6 +20,7 @@ interface GooglePlacesAutocompleteProps {
   placeholder?: string;
   error?: string;
   required?: boolean;
+  icon?: React.ReactNode;
 }
 
 /**
@@ -42,6 +43,7 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
   placeholder = 'Enter address',
   error,
   required = false,
+  icon,
 }) => {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -202,13 +204,32 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
   const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
+    
+    // If user clears the input (empty string), immediately clear all address data
+    if (newValue.trim() === '') {
+      onChange({
+        address: '',
+        lat: 0,
+        lng: 0,
+        placeId: '',
+      });
+    }
   };
 
   const handleBlur = () => {
     // If user manually typed without selecting, save with 0 coordinates
-    if (inputValue && inputValue !== value) {
+    if (inputValue && inputValue.trim() !== '' && inputValue !== value) {
       onChange({
         address: inputValue,
+        lat: 0,
+        lng: 0,
+        placeId: '',
+      });
+    }
+    // If input is empty but value exists, clear it
+    else if (inputValue.trim() === '' && value !== '') {
+      onChange({
+        address: '',
         lat: 0,
         lng: 0,
         placeId: '',
@@ -219,6 +240,7 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
   return (
     <div className="space-y-2">
       <label htmlFor={label} className="block text-sm font-medium text-gray-700">
+        {icon && <span className="inline-block mr-1">{icon}</span>}
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input

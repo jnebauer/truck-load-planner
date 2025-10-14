@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { showToast } from '@/lib/toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ImageUploadProps {
   label: string;
@@ -36,6 +37,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | undefined>(value);
+  const { authenticatedFetch } = useAuth();
+
+  // Update preview when value prop changes (e.g., when editing)
+  useEffect(() => {
+    setPreview(value);
+  }, [value]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,7 +76,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       formData.append('file', file);
       formData.append('folder', folder);
 
-      const response = await fetch('/api/upload/image', {
+      // Use authenticatedFetch to automatically include auth headers
+      const response = await authenticatedFetch('/api/upload/image', {
         method: 'POST',
         body: formData,
       });

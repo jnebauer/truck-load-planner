@@ -27,11 +27,12 @@ interface UserAppPermission {
 /**
  * Client data structure (from users table with role=Client)
  */
-export interface Client {
+export interface Client extends Record<string, unknown> {
   id: string;
   email: string;
   full_name: string | null;
   phone: string | null;
+  profile_image?: string | null;
   role: string;
   status: 'active' | 'inactive' | 'blocked';
   created_at: string;
@@ -92,7 +93,8 @@ export function useClients() {
       password: '',
       fullName: '',
       phone: '',
-      role: 'Client',
+      profileImage: '',
+      role: 'clients',
       status: 'active',
       appPermissions: {},
       companyName: '',
@@ -112,10 +114,10 @@ export function useClients() {
     },
   });
 
-  // Fetch clients with filters (from users table where role=Client)
+  // Fetch clients with filters (from clients API)
   const fetchClients = useCallback(async (
-    page = currentPage,
-    search = searchTerm,
+    page: number,
+    search: string,
   ) => {
     try {
       if (page === 1) {
@@ -127,14 +129,13 @@ export function useClients() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: itemsPerPage.toString(),
-        role: 'Client', // Filter by Client role
       });
 
       if (search) {
         params.append('search', search);
       }
 
-      const response = await authenticatedFetch(`/api/dashboard/users?${params.toString()}`);
+      const response = await authenticatedFetch(`/api/dashboard/clients?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -143,19 +144,15 @@ export function useClients() {
 
       const data = await response.json();
       
-      setClients(data.users || []);
+      setClients(data.clients || []);
       setTotalPages(data.pagination?.totalPages || 1);
       setTotalItems(data.pagination?.totalItems || 0);
       setCurrentPage(data.pagination?.currentPage || 1);
       
-      // Calculate client-specific stats
-      const allClients = data.users || [];
-      setStats({
-        totalClients: allClients.length,
-        activeClients: allClients.filter((c: Client) => c.status === 'active').length,
-        inactiveClients: allClients.filter((c: Client) => c.status === 'inactive').length,
-        blockedClients: allClients.filter((c: Client) => c.status === 'blocked').length,
-      });
+      // Use stats from API response
+      if (data.stats) {
+        setStats(data.stats);
+      }
 
       setError(null);
     } catch (err) {
@@ -166,12 +163,51 @@ export function useClients() {
       setLoading(false);
       setPaginationLoading(false);
     }
-  }, [authenticatedFetch, currentPage, itemsPerPage, searchTerm]);
+  }, [authenticatedFetch, itemsPerPage]);
 
-  // Fetch clients on mount and when dependencies change
+  // Initial load only - don't refetch on searchTerm change
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    const initialLoad = async () => {
+      try {
+        setLoading(true);
+        
+        // Build query parameters for initial load
+        const params = new URLSearchParams({
+          page: '1',
+          limit: itemsPerPage.toString(),
+        });
+        
+        const response = await authenticatedFetch(`/api/dashboard/clients?${params.toString()}`);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch clients');
+        }
+
+        const data = await response.json();
+        
+        setClients(data.clients || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalItems(data.pagination?.totalItems || 0);
+        setCurrentPage(data.pagination?.currentPage || 1);
+        
+        // Use stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+
+        setError(null);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch clients';
+        setError(errorMessage);
+        showToast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialLoad();
+  }, [authenticatedFetch, itemsPerPage]); // Only depend on authenticatedFetch and itemsPerPage
 
   // Handle page change
   const handlePageChange = useCallback((newPage: number) => {
@@ -180,11 +216,48 @@ export function useClients() {
   }, [fetchClients, searchTerm]);
 
   // Handle search
-  const handleSearch = useCallback((search: string) => {
+  const handleSearch = useCallback(async (search: string) => {
     setSearchTerm(search);
-    setCurrentPage(1);
-    fetchClients(1, search);
-  }, [fetchClients]);
+    setCurrentPage(1); // Reset to first page when searching
+    
+    try {
+      setPaginationLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: '1',
+        limit: itemsPerPage.toString(),
+      });
+      
+      if (search) {
+        params.append('search', search);
+      }
+      
+      const response = await authenticatedFetch(`/api/dashboard/clients?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setClients(data.clients || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalItems(data.pagination?.totalItems || 0);
+        setCurrentPage(data.pagination?.currentPage || 1);
+        
+        // Update stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } else {
+        setError(data.error || 'Failed to fetch clients');
+        showToast.error(data.error || 'Failed to fetch clients');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while searching';
+      setError(errorMessage);
+      showToast.error(errorMessage);
+    } finally {
+      setPaginationLoading(false);
+    }
+  }, [authenticatedFetch, itemsPerPage]);
 
   // Handle create client
   const handleCreateClient = useCallback(() => {
@@ -194,7 +267,8 @@ export function useClients() {
       password: '',
       fullName: '',
       phone: '',
-      role: 'Client',
+      profileImage: '',
+      role: 'clients',
       status: 'active',
       appPermissions: {},
       companyName: '',
@@ -240,7 +314,8 @@ export function useClients() {
       password: '',
       fullName: client.full_name || '',
       phone: client.phone || '',
-      role: 'Client',
+      profileImage: client.profile_image || '',
+      role: 'clients',
       status: client.status,
       appPermissions,
       companyName: client.company_name || '',
@@ -281,7 +356,8 @@ export function useClients() {
         email: data.email,
         fullName: data.fullName,
         phone: data.phone,
-        role: 'Client',
+        profileImage: data.profileImage || '',
+        role: 'clients',
         status: data.status,
         appPermissions: data.appPermissions,
         companyName: data.companyName,
@@ -297,13 +373,13 @@ export function useClients() {
         taxId: data.taxId,
         website: data.website,
         notes: data.notes,
-        logoImage: data.logoImage,
+        logoImage: data.logoImage || '',
         ...(data.password && data.password.trim() !== '' && { password: data.password }),
       };
 
       const url = editingClient
-        ? `/api/dashboard/users/${editingClient.id}`
-        : '/api/dashboard/users';
+        ? `/api/dashboard/clients/${editingClient.id}`
+        : '/api/dashboard/clients';
       const method = editingClient ? 'PUT' : 'POST';
 
       const response = await authenticatedFetch(url, {
@@ -321,32 +397,12 @@ export function useClients() {
       setIsFormOpen(false);
       setEditingClient(null);
       form.reset();
-      fetchClients();
+      fetchClients(currentPage, searchTerm);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       showToast.error(errorMessage);
     }
-  }, [editingClient, form, authenticatedFetch, fetchClients]);
-
-  // Handle delete client
-  const handleDeleteClient = useCallback(async (clientId: string) => {
-    try {
-      const response = await authenticatedFetch(`/api/dashboard/users/${clientId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete client');
-      }
-
-      showToast.success(TOAST_MESSAGES.SUCCESS.DELETED);
-      fetchClients();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete client';
-      showToast.error(errorMessage);
-    }
-  }, [authenticatedFetch, fetchClients]);
+  }, [editingClient, form, authenticatedFetch, fetchClients, currentPage, searchTerm]);
 
   // Handle form close
   const handleFormClose = useCallback(() => {
@@ -384,7 +440,6 @@ export function useClients() {
     // Client actions
     handleCreateClient,
     handleEditClient,
-    handleDeleteClient,
     handleFormSubmit,
     handleFormClose,
     

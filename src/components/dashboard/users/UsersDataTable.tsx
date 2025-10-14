@@ -129,8 +129,8 @@ export default function UsersDataTable({
       data={users}
       columns={columns}
       actions={actions}
-      searchPlaceholder="Search employees..."
-      emptyMessage="No employees found"
+      searchPlaceholder="Search users..."
+      emptyMessage="No users found"
       // Server-side pagination props
       serverSidePagination={true}
       currentPage={currentPage}

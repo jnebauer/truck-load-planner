@@ -30,6 +30,11 @@ export const API_RESPONSE_MESSAGES = {
     CLIENT_UPDATED: 'Client updated successfully',
     CLIENT_DELETED: 'Client deleted successfully',
     
+    // Projects
+    PROJECT_CREATED: 'Project created successfully',
+    PROJECT_UPDATED: 'Project updated successfully',
+    PROJECT_DELETED: 'Project deleted successfully',
+    
     // Upload
     UPLOAD_SUCCESS: 'File uploaded successfully',
   },
@@ -61,10 +66,12 @@ export const API_RESPONSE_MESSAGES = {
     // Resource Errors
     ROLE_NOT_FOUND: 'Role not found',
     USER_NOT_FOUND: 'No account found with this email address',
+    PROJECT_NOT_FOUND: 'Project not found',
     RESOURCE_NOT_FOUND: 'Resource not found',
     DUPLICATE_ROLE: 'Role with this name already exists',
     DUPLICATE_USER: 'User with this email already exists',
     DUPLICATE_EMAIL: 'Email already exists',
+    DUPLICATE_PROJECT_CODE: 'Project with this code already exists',
     
     // Permission Errors
     INVALID_PERMISSIONS: 'Invalid permissions provided',
@@ -163,6 +170,16 @@ export const TOAST_MESSAGES = {
     PROFILE_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.PROFILE_UPDATED + '!',
     USER_DELETED: API_RESPONSE_MESSAGES.SUCCESS.USER_DELETED + '!',
     
+    // Clients
+    CLIENT_CREATED: API_RESPONSE_MESSAGES.SUCCESS.CLIENT_CREATED + '!',
+    CLIENT_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.CLIENT_UPDATED + '!',
+    CLIENT_DELETED: API_RESPONSE_MESSAGES.SUCCESS.CLIENT_DELETED + '!',
+    
+    // Projects
+    PROJECT_CREATED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_CREATED + '!',
+    PROJECT_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_UPDATED + '!',
+    PROJECT_DELETED: API_RESPONSE_MESSAGES.SUCCESS.PROJECT_DELETED + '!',
+    
     // Generic
     CREATED: 'Created successfully!',
     UPDATED: 'Updated successfully!',
@@ -192,7 +209,9 @@ export const TOAST_MESSAGES = {
     // Resource Errors
     ROLE_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.ROLE_NOT_FOUND,
     USER_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND,
+    PROJECT_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND,
     NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.RESOURCE_NOT_FOUND,
+    DUPLICATE_PROJECT_CODE: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_PROJECT_CODE,
     
     // Operation Errors
     ROLE_CREATE_FAILED: 'Failed to create role',
@@ -207,6 +226,10 @@ export const TOAST_MESSAGES = {
     CLIENT_UPDATE_FAILED: 'Failed to update client',
     CLIENT_DELETE_FAILED: 'Failed to delete client',
     CLIENT_FETCH_FAILED: 'Failed to fetch clients',
+    PROJECT_CREATE_FAILED: 'Failed to create project',
+    PROJECT_UPDATE_FAILED: 'Failed to update project',
+    PROJECT_DELETE_FAILED: 'Failed to delete project',
+    PROJECT_FETCH_FAILED: 'Failed to fetch projects',
     FETCH_FAILED: API_RESPONSE_MESSAGES.ERROR.FETCH_FAILED,
     SAVE_FAILED: API_RESPONSE_MESSAGES.ERROR.SAVE_FAILED,
     UPDATE_FAILED: API_RESPONSE_MESSAGES.ERROR.UPDATE_FAILED,

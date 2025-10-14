@@ -141,6 +141,10 @@ export const clientFormSchema = z.object({
     .string()
     .optional()
     .or(z.literal('')),
+  profileImage: z
+    .string()
+    .optional()
+    .or(z.literal('')),
   role: z.string(),
   status: z.enum(['active', 'inactive', 'blocked']),
   appPermissions: z.record(z.string(), z.boolean()).optional(),
@@ -159,6 +163,40 @@ export const clientFormSchema = z.object({
   website: z.string().url(VALIDATION_MESSAGES.URL_INVALID).optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
   logoImage: z.string().optional().or(z.literal('')),
+});
+
+// Project form validation schema
+export const projectFormSchema = z.object({
+  clientId: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED),
+  name: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .min(2, 'Project name must be at least 2 characters')
+    .max(200, 'Project name must not exceed 200 characters'),
+  code: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.REQUIRED)
+    .regex(/^[A-Z0-9-]+$/, 'Project code must contain only uppercase letters, numbers, and hyphens')
+    .max(50, 'Project code must not exceed 50 characters'),
+  siteAddress: z.string().optional().or(z.literal('')),
+  siteLat: z.number().optional().nullable(),
+  siteLng: z.number().optional().nullable(),
+  sitePlaceId: z.string().optional().or(z.literal('')),
+  startDate: z.string().optional().or(z.literal('')),
+  endDate: z.string().optional().or(z.literal('')),
+  status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled', 'inactive', 'deleted']),
+  notes: z.string().optional().or(z.literal('')),
+}).refine((data) => {
+  // If both dates are provided, end date must be greater than or equal to start date
+  if (data.startDate && data.endDate && data.startDate !== '' && data.endDate !== '') {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: 'End date must be greater than or equal to start date',
+  path: ['endDate'],
 });
 
 // Settings validation schemas
@@ -200,5 +238,6 @@ export type UserFormData = z.infer<typeof userSchema>;
 export type UserCreateFormData = z.infer<typeof userCreateSchema>;
 export type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
 export type ClientFormSchemaData = z.infer<typeof clientFormSchema>;
+export type ProjectFormData = z.infer<typeof projectFormSchema>;
 export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;

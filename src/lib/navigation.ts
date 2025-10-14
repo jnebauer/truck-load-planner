@@ -37,6 +37,7 @@ import {
   FileText,
   Upload,
   Building2,
+  FolderKanban,
   Users,
   Settings,
   Shield,
@@ -118,6 +119,19 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
   },
   {
+    id: 'projects',
+    name: 'Projects',
+    href: '/dashboard/projects',
+    icon: FolderKanban,
+    permission: 'navigation.projects',
+    actions: {
+      view: 'projects.read',
+      create: 'projects.create',
+      edit: 'projects.update',
+      delete: 'projects.delete',
+    },
+  },
+  {
     id: 'user_management',
     name: 'User Management',
     icon: Users,
@@ -141,7 +155,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
       },
       {
         id: 'users',
-        name: 'Employees',
+        name: 'Users',
         href: '/dashboard/users',
         icon: UserCheck,
         permission: 'users.read',

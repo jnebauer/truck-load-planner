@@ -45,20 +45,20 @@ export default function UsersPage() {
     return (
       <AccessDenied
         title="Access Denied"
-        message="You don't have permission to view employees."
+        message="You don't have permission to view users."
       />
     );
   }
 
   if (loading) {
-    return <LoadingSpinner text="Loading employees..." />;
+    return <LoadingSpinner text="Loading users..." />;
   }
 
   if (error) {
     return (
       <AccessDenied
         title="Error Loading Data"
-        message={`Failed to load employees: ${error}`}
+        message={`Failed to load users: ${error}`}
         className="h-64"
       />
     );

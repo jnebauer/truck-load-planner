@@ -7,4 +7,5 @@ export type { Column, Action, DataTableProps } from './DataTable';
 export { default as Drawer } from './Drawer';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as Spinner } from './Spinner';
+export { default as SearchableSelect } from './SearchableSelect';
 

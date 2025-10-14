@@ -402,6 +402,85 @@ export type Database = {
           }
         ]
       }
+      projects: {
+        Row: {
+          id: string
+          client_id: string
+          name: string
+          code: string
+          site_address: string | null
+          site_lat: number | null
+          site_lng: number | null
+          site_place_id: string | null
+          start_date: string | null
+          end_date: string | null
+            status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled' | 'inactive' | 'deleted'
+          notes: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          name: string
+          code: string
+          site_address?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_place_id?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled' | 'inactive' | 'deleted'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          name?: string
+          code?: string
+          site_address?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_place_id?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled' | 'inactive' | 'deleted'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

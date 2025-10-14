@@ -32,7 +32,6 @@ export default function ClientsPage() {
     editingClient,
     handleCreateClient,
     handleEditClient,
-    handleDeleteClient,
     handleFormSubmit,
     handleFormClose,
   } = useClients();
@@ -76,6 +75,7 @@ export default function ClientsPage() {
       <div className="space-y-4">
         <ClientsDataTable
           clients={clients}
+          hasPermission={hasPermission}
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
@@ -84,7 +84,6 @@ export default function ClientsPage() {
           onPageChange={handlePageChange}
           onSearch={handleSearch}
           onEdit={handleEditClient}
-          onDelete={handleDeleteClient}
         />
       </div>
 
@@ -104,6 +103,7 @@ export default function ClientsPage() {
           register={form.register}
           setValue={form.setValue}
           watch={form.watch}
+          control={form.control}
         />
       </Drawer>
     </div>
