@@ -53,7 +53,7 @@ export async function GET(
 
     if (!inventoryUnit) {
       return NextResponse.json(
-        { error: 'Inventory unit not found' },
+        { error: API_RESPONSE_MESSAGES.ERROR.INVENTORY_NOT_FOUND },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }
@@ -99,10 +99,16 @@ export async function PATCH(
 
     if (fetchError || !currentUnit) {
       return NextResponse.json(
-        { error: 'Inventory unit not found' },
+        { error: API_RESPONSE_MESSAGES.ERROR.INVENTORY_NOT_FOUND },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }
+
+    // Type cast to include new location columns
+    const currentUnitWithLocation = currentUnit as typeof currentUnit & {
+      location_latitude: number | null;
+      location_longitude: number | null;
+    };
 
     const {
       // Inventory unit fields
@@ -110,6 +116,8 @@ export async function PATCH(
       project_id,
       status,
       location_site,
+      location_latitude,
+      location_longitude,
       location_aisle,
       location_bay,
       location_level,
@@ -174,7 +182,7 @@ export async function PATCH(
       if (itemUpdateError) {
         console.error('Error updating item:', itemUpdateError);
         return NextResponse.json(
-          { error: 'Failed to update item details' },
+          { error: API_RESPONSE_MESSAGES.ERROR.UPDATE_FAILED },
           { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
         );
       }
@@ -192,6 +200,8 @@ export async function PATCH(
     // Other inventory unit fields
     if (status) updates.status = status;
     if (location_site) updates.location_site = location_site;
+    if (location_latitude !== undefined) updates.location_latitude = location_latitude;
+    if (location_longitude !== undefined) updates.location_longitude = location_longitude;
     if (location_aisle !== undefined) updates.location_aisle = location_aisle;
     if (location_bay !== undefined) updates.location_bay = location_bay;
     if (location_level !== undefined) updates.location_level = location_level;
@@ -227,10 +237,12 @@ export async function PATCH(
     // Create movement record if status or location changed
     const statusChanged = status && status !== currentUnit.status;
     const locationChanged =
-      location_site !== currentUnit.location_site ||
-      location_aisle !== currentUnit.location_aisle ||
-      location_bay !== currentUnit.location_bay ||
-      location_level !== currentUnit.location_level;
+      location_site !== currentUnitWithLocation.location_site ||
+      location_latitude !== currentUnitWithLocation.location_latitude ||
+      location_longitude !== currentUnitWithLocation.location_longitude ||
+      location_aisle !== currentUnitWithLocation.location_aisle ||
+      location_bay !== currentUnitWithLocation.location_bay ||
+      location_level !== currentUnitWithLocation.location_level;
 
     if (statusChanged || locationChanged) {
       await supabase.from('movements').insert({
@@ -301,7 +313,7 @@ export async function DELETE(
 
     if (fetchError || !inventoryUnit) {
       return NextResponse.json(
-        { error: 'Inventory unit not found' },
+        { error: API_RESPONSE_MESSAGES.ERROR.INVENTORY_NOT_FOUND },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }

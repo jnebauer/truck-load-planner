@@ -11,6 +11,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ENUMS
 -- =====================================================
 
+-- Drop existing types if they exist
+DROP TYPE IF EXISTS stackability CASCADE;
+DROP TYPE IF EXISTS inventory_status CASCADE;
+DROP TYPE IF EXISTS media_tag CASCADE;
+
 -- Stackability: how items can be stacked
 CREATE TYPE stackability AS ENUM (
   'stackable',      -- Can be both top or bottom
@@ -35,6 +40,14 @@ CREATE TYPE media_tag AS ENUM (
   'racking',        -- Photo of location/rack
   'onsite'          -- Photo of item installed onsite
 );
+
+-- =====================================================
+-- DROP EXISTING TABLES (if they exist)
+-- =====================================================
+DROP TABLE IF EXISTS movements CASCADE;
+DROP TABLE IF EXISTS media CASCADE;
+DROP TABLE IF EXISTS inventory_units CASCADE;
+DROP TABLE IF EXISTS items CASCADE;
 
 -- =====================================================
 -- ITEMS TABLE (Catalog/Types)
@@ -68,7 +81,7 @@ CREATE TABLE items (
   
   -- Stacking Properties
   stackability stackability NOT NULL DEFAULT 'stackable',
-  top_load_rating_kg NUMERIC DEFAULT 500 CHECK (top_load_rating_kg >= 0),
+  top_load_rating_kg NUMERIC CHECK (top_load_rating_kg >= 0),
   orientation_locked BOOLEAN DEFAULT false,
   fragile BOOLEAN DEFAULT false,
   keep_upright BOOLEAN DEFAULT true,
@@ -120,6 +133,8 @@ CREATE TABLE inventory_units (
   
   -- Location in Warehouse
   location_site TEXT NOT NULL,          -- e.g., "Derrimut"
+  location_latitude DECIMAL(10, 8),     -- Latitude from Google Places
+  location_longitude DECIMAL(11, 8),    -- Longitude from Google Places
   location_aisle TEXT,                  -- e.g., "A"
   location_bay TEXT,                    -- e.g., "01"
   location_level TEXT,                  -- e.g., "1"
@@ -239,6 +254,12 @@ COMMENT ON COLUMN movements.to_location IS 'New location as JSON: {site, aisle, 
 -- =====================================================
 -- TRIGGERS
 -- =====================================================
+
+-- Drop existing triggers and functions if they exist
+DROP TRIGGER IF EXISTS trigger_items_updated_at ON items;
+DROP TRIGGER IF EXISTS trigger_inventory_units_updated_at ON inventory_units;
+DROP FUNCTION IF EXISTS update_items_updated_at();
+DROP FUNCTION IF EXISTS update_inventory_units_updated_at();
 
 -- Update updated_at timestamp on items
 CREATE OR REPLACE FUNCTION update_items_updated_at()

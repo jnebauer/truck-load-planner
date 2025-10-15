@@ -343,6 +343,8 @@ export async function POST(request: NextRequest) {
       pallet_no,
       inventory_date,
       location_site,
+      location_latitude,
+      location_longitude,
       location_aisle,
       location_bay,
       location_level,
@@ -350,6 +352,9 @@ export async function POST(request: NextRequest) {
       quantity,
       status,
     } = body;
+
+    // Debug: Log location coordinates
+    console.log('Received location data:', { location_site, location_latitude, location_longitude });
 
     if (
       !client_id ||
@@ -415,29 +420,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Create inventory unit
+    const inventoryUnitData = {
+      item_id: item.id,
+      client_id,
+      project_id: project_id || null,
+      pallet_no: pallet_no || null,
+      inventory_date: inventory_date || new Date().toISOString().split('T')[0],
+      location_site,
+      location_latitude: location_latitude || null,
+      location_longitude: location_longitude || null,
+      location_aisle: location_aisle || null,
+      location_bay: location_bay || null,
+      location_level: location_level || null,
+      location_notes: location_notes || null,
+      quantity: quantity || 1,
+      status: (status as
+        | 'in_storage'
+        | 'reserved'
+        | 'on_truck'
+        | 'onsite'
+        | 'returned') || 'in_storage',
+      created_by: user.id,
+      updated_by: user.id,
+    };
+    
+    console.log('Inserting inventory unit with coordinates:', { 
+      location_latitude: inventoryUnitData.location_latitude, 
+      location_longitude: inventoryUnitData.location_longitude 
+    });
+
     const { data: inventoryUnit, error: unitError } = await supabase
       .from('inventory_units')
-      .insert({
-        item_id: item.id,
-        client_id,
-        project_id: project_id || null,
-        pallet_no: pallet_no || null,
-        inventory_date: inventory_date || new Date().toISOString().split('T')[0],
-        location_site,
-        location_aisle: location_aisle || null,
-        location_bay: location_bay || null,
-        location_level: location_level || null,
-        location_notes: location_notes || null,
-        quantity: quantity || 1,
-        status: (status as
-          | 'in_storage'
-          | 'reserved'
-          | 'on_truck'
-          | 'onsite'
-          | 'returned') || 'in_storage',
-        created_by: user.id,
-        updated_by: user.id,
-      })
+      .insert(inventoryUnitData)
       .select(
         `
         *,

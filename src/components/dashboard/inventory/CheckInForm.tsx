@@ -15,9 +15,11 @@ import {
   FileText,
   Check,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { UseFormRegister, FieldErrors, UseFormSetValue, UseFormWatch, Controller, Control } from 'react-hook-form';
 import { SearchableSelect, GooglePlacesAutocomplete } from '@/components/common';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
 import type { InventoryUnitType } from './types';
 import type { InventoryFormData } from '@/lib/validations';
 
@@ -31,6 +33,18 @@ interface CheckInFormProps {
   setValue: UseFormSetValue<InventoryFormData>;
   watch: UseFormWatch<InventoryFormData>;
   control: Control<InventoryFormData>;
+  palletValidation: {
+    checking: boolean;
+    isDuplicate: boolean;
+    message: string;
+  };
+  skuValidation: {
+    checking: boolean;
+    isDuplicate: boolean;
+    message: string;
+  };
+  showPalletSuccess: boolean;
+  showSkuSuccess: boolean;
 }
 
 export default function CheckInForm({
@@ -43,9 +57,15 @@ export default function CheckInForm({
   setValue,
   watch,
   control,
+  palletValidation,
+  skuValidation,
+  showPalletSuccess,
+  showSkuSuccess,
 }: CheckInFormProps) {
   const clientId = watch('clientId');
   const projectId = watch('projectId');
+  const palletNo = watch('palletNo');
+  const sku = watch('sku');
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col h-full">
@@ -158,15 +178,49 @@ export default function CheckInForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Tag className="h-4 w-4 inline mr-1" />
-            SKU / Item Code
+            SKU / Item Code <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            {...register('sku')}
-            placeholder="e.g., WP-2400"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isSubmitting}
-          />
+          <div className="relative">
+            <input
+              type="text"
+              {...register('sku')}
+              placeholder="e.g., WP-2400"
+              className={`w-full px-3 py-2 pr-10 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                sku && skuValidation.isDuplicate
+                  ? 'border-red-500 bg-red-50'
+                  : sku && !skuValidation.checking && !skuValidation.isDuplicate && sku.trim() !== '' && (editingInventory ? sku !== editingInventory.item?.sku : true)
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-300'
+              }`}
+              disabled={isSubmitting}
+            />
+            {/* Validation Icon */}
+            {sku && sku.trim() !== '' && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                {skuValidation.checking ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                ) : skuValidation.isDuplicate ? (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                ) : (editingInventory ? sku !== editingInventory.item?.sku : true) ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : null}
+              </div>
+            )}
+          </div>
+          {/* Validation Message */}
+          {skuValidation.message && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {skuValidation.message}
+            </p>
+          )}
+          {/* Available Message - Auto-hide after 5 seconds */}
+          {showSkuSuccess && (
+            <p className="mt-1 text-sm text-green-600 flex items-center">
+              <Check className="h-3 w-3 mr-1" />
+              {TOAST_MESSAGES.SUCCESS.SKU_AVAILABLE}
+            </p>
+          )}
           {errors.sku && (
             <p className="mt-1 text-sm text-red-600">{errors.sku.message}</p>
           )}
@@ -369,27 +423,67 @@ export default function CheckInForm({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Hash className="h-4 w-4 inline mr-1" />
-              Pallet Number
+              Pallet Number <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              {...register('palletNo')}
-              placeholder="e.g., P-001"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isSubmitting}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                {...register('palletNo')}
+                placeholder="e.g., P-001"
+                className={`w-full px-3 py-2 pr-10 border rounded-lg text-gray-900 focus:ring-2 focus:border-transparent ${
+                  palletValidation.isDuplicate
+                    ? 'border-red-500 focus:ring-red-500'
+                    : palletNo && !palletValidation.checking && !palletValidation.isDuplicate
+                    ? 'border-green-500 focus:ring-green-500'
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                disabled={isSubmitting}
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                {palletValidation.checking && (
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                )}
+                {!palletValidation.checking && palletValidation.isDuplicate && (
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                )}
+                {!palletValidation.checking && palletNo && !palletValidation.isDuplicate && palletNo.trim() !== '' && (
+                  <Check className="h-5 w-5 text-green-500" />
+                )}
+              </div>
+            </div>
+            {palletValidation.isDuplicate && (
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {palletValidation.message}
+              </p>
+            )}
+            {/* Available Message - Auto-hide after 5 seconds */}
+            {showPalletSuccess && (
+              <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
+                <Check className="h-4 w-4" />
+                {TOAST_MESSAGES.SUCCESS.PALLET_AVAILABLE}
+              </p>
+            )}
+            {errors.palletNo && (
+              <p className="mt-1 text-sm text-red-600">{errors.palletNo.message}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="h-4 w-4 inline mr-1" />
-              Inventory Date
+              Inventory Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               {...register('inventoryDate')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.inventoryDate ? 'border-red-500' : 'border-gray-300'
+              }`}
               disabled={isSubmitting}
             />
+            {errors.inventoryDate && (
+              <p className="mt-1 text-sm text-red-600">{errors.inventoryDate.message}</p>
+            )}
           </div>
         </div>
 
@@ -402,8 +496,21 @@ export default function CheckInForm({
               label="Warehouse Site / Location"
               value={field.value}
               onChange={(data) => {
-                // We only need the address text for location_site
-                field.onChange(data.address);
+                // Save address and coordinates (same pattern as Client form)
+                console.log('Google Places Data:', data);
+                if (!data.address || data.address.trim() === '') {
+                  field.onChange('');
+                  setValue('locationLatitude', null);
+                  setValue('locationLongitude', null);
+                } else {
+                  field.onChange(data.address);
+                  setValue('locationLatitude', data.lat || null);
+                  setValue('locationLongitude', data.lng || null);
+                }
+                console.log('Set coordinates:', { 
+                  lat: data.lat || null, 
+                  lng: data.lng || null 
+                });
               }}
               placeholder="Enter warehouse location (e.g., Derrimut, Melbourne)"
               error={errors.locationSite?.message}
@@ -520,13 +627,27 @@ export default function CheckInForm({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || palletValidation.checking || palletValidation.isDuplicate || skuValidation.checking || skuValidation.isDuplicate}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={
+            palletValidation.isDuplicate 
+              ? TOAST_MESSAGES.ERROR.DUPLICATE_PALLET 
+              : skuValidation.isDuplicate 
+              ? TOAST_MESSAGES.ERROR.DUPLICATE_SKU 
+              : palletValidation.checking || skuValidation.checking 
+              ? 'Validating...' 
+              : ''
+          }
         >
           {isSubmitting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
               {editingInventory ? 'Updating...' : 'Checking In...'}
+            </>
+          ) : palletValidation.checking || skuValidation.checking ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              Validating...
             </>
           ) : (
             <>

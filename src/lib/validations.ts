@@ -238,29 +238,68 @@ export const inventoryFormSchema = z.object({
   label: z
     .string()
     .min(1, VALIDATION_MESSAGES.REQUIRED)
-    .min(2, 'Item label must be at least 2 characters')
-    .max(200, 'Item label must not exceed 200 characters'),
-  sku: z.string().optional().or(z.literal('')),
+    .min(2, VALIDATION_MESSAGES.ITEM_LABEL_MIN_LENGTH)
+    .max(200, VALIDATION_MESSAGES.ITEM_LABEL_MAX_LENGTH),
+  sku: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.SKU_REQUIRED)
+    .min(2, VALIDATION_MESSAGES.SKU_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.SKU_MAX_LENGTH),
   description: z.string().optional().or(z.literal('')),
-  lengthMm: z.coerce.number().positive('Length must be positive'),
-  widthMm: z.coerce.number().positive('Width must be positive'),
-  heightMm: z.coerce.number().positive('Height must be positive'),
-  weightKg: z.coerce.number().nonnegative('Weight cannot be negative'),
+  lengthMm: z.coerce.number().refine(
+    (val) => !isNaN(val) && val !== 0,
+    { message: VALIDATION_MESSAGES.LENGTH_REQUIRED }
+  ).refine(
+    (val) => val > 0,
+    { message: VALIDATION_MESSAGES.LENGTH_MUST_BE_POSITIVE }
+  ),
+  widthMm: z.coerce.number().refine(
+    (val) => !isNaN(val) && val !== 0,
+    { message: VALIDATION_MESSAGES.WIDTH_REQUIRED }
+  ).refine(
+    (val) => val > 0,
+    { message: VALIDATION_MESSAGES.WIDTH_MUST_BE_POSITIVE }
+  ),
+  heightMm: z.coerce.number().refine(
+    (val) => !isNaN(val) && val !== 0,
+    { message: VALIDATION_MESSAGES.HEIGHT_REQUIRED }
+  ).refine(
+    (val) => val > 0,
+    { message: VALIDATION_MESSAGES.HEIGHT_MUST_BE_POSITIVE }
+  ),
+  weightKg: z.coerce.number().refine(
+    (val) => !isNaN(val),
+    { message: VALIDATION_MESSAGES.WEIGHT_REQUIRED }
+  ).refine(
+    (val) => val >= 0,
+    { message: VALIDATION_MESSAGES.WEIGHT_CANNOT_BE_NEGATIVE }
+  ),
   stackability: z.enum(['stackable', 'non_stackable', 'top_only', 'bottom_only']),
-  topLoadRatingKg: z.coerce.number().nonnegative('Top load rating cannot be negative').optional(),
+  topLoadRatingKg: z.coerce.number().nonnegative(VALIDATION_MESSAGES.TOP_LOAD_RATING_NEGATIVE).optional(),
   orientationLocked: z.boolean().optional(),
   fragile: z.boolean().optional(),
   keepUpright: z.boolean().optional(),
-  priority: z.coerce.number().int('Priority must be an integer').positive('Priority must be positive').optional().nullable(),
+  priority: z.coerce.number().int(VALIDATION_MESSAGES.PRIORITY_MUST_BE_INTEGER).positive(VALIDATION_MESSAGES.PRIORITY_MUST_BE_POSITIVE).optional().nullable(),
   // Inventory unit details
-  palletNo: z.string().optional().or(z.literal('')),
-  inventoryDate: z.string().optional().or(z.literal('')),
+  palletNo: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.PALLET_NUMBER_REQUIRED)
+    .min(2, VALIDATION_MESSAGES.PALLET_NUMBER_MIN_LENGTH)
+    .max(100, VALIDATION_MESSAGES.PALLET_NUMBER_MAX_LENGTH),
+  inventoryDate: z
+    .string()
+    .min(1, VALIDATION_MESSAGES.INVENTORY_DATE_REQUIRED)
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: VALIDATION_MESSAGES.INVENTORY_DATE_INVALID,
+    }),
   locationSite: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
+  locationLatitude: z.number().optional().nullable(),
+  locationLongitude: z.number().optional().nullable(),
   locationAisle: z.string().optional().or(z.literal('')),
   locationBay: z.string().optional().or(z.literal('')),
   locationLevel: z.string().optional().or(z.literal('')),
   locationNotes: z.string().optional().or(z.literal('')),
-  quantity: z.coerce.number().int('Quantity must be an integer').positive('Quantity must be positive').optional(),
+  quantity: z.coerce.number().int(VALIDATION_MESSAGES.QUANTITY_MUST_BE_INTEGER).positive(VALIDATION_MESSAGES.QUANTITY_MUST_BE_POSITIVE).optional(),
   status: z.enum(['in_storage', 'reserved', 'on_truck', 'onsite', 'returned']),
 });
 

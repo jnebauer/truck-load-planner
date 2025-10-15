@@ -52,7 +52,7 @@ export function useInventory() {
       heightMm: undefined,
       weightKg: undefined,
       stackability: 'stackable',
-      topLoadRatingKg: 500,
+      topLoadRatingKg: undefined,
       orientationLocked: false,
       fragile: false,
       keepUpright: true,
@@ -60,6 +60,8 @@ export function useInventory() {
       palletNo: '',
       inventoryDate: new Date().toISOString().split('T')[0],
       locationSite: '',
+      locationLatitude: null,
+      locationLongitude: null,
       locationAisle: '',
       locationBay: '',
       locationLevel: '',
@@ -68,6 +70,163 @@ export function useInventory() {
       status: 'in_storage',
     },
   });
+
+  // Pallet validation state
+  const [palletValidation, setPalletValidation] = useState<{
+    checking: boolean;
+    isDuplicate: boolean;
+    message: string;
+  }>({
+    checking: false,
+    isDuplicate: false,
+    message: '',
+  });
+
+  // SKU validation state
+  const [skuValidation, setSkuValidation] = useState<{
+    checking: boolean;
+    isDuplicate: boolean;
+    message: string;
+  }>({
+    checking: false,
+    isDuplicate: false,
+    message: '',
+  });
+
+  // Success message visibility state (auto-hide after 5 seconds)
+  const [showPalletSuccess, setShowPalletSuccess] = useState(false);
+  const [showSkuSuccess, setShowSkuSuccess] = useState(false);
+
+  // Watch fields for validation
+  const palletNo = form.watch('palletNo');
+  const sku = form.watch('sku');
+
+  // Check pallet number uniqueness
+  useEffect(() => {
+    const checkPalletNumber = async () => {
+      // Skip if empty or same as original (in edit mode)
+      if (!palletNo || palletNo.trim() === '') {
+        setPalletValidation({ checking: false, isDuplicate: false, message: '' });
+        return;
+      }
+
+      // Skip if same as original pallet number in edit mode
+      if (editingInventory && palletNo === editingInventory.pallet_no) {
+        setPalletValidation({ checking: false, isDuplicate: false, message: '' });
+        return;
+      }
+
+      // Debounce: wait 500ms after user stops typing
+      const timer = setTimeout(async () => {
+        setPalletValidation({ checking: true, isDuplicate: false, message: '' });
+
+        try {
+          const response = await authenticatedFetch('/api/dashboard/inventory/check-pallets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pallet_numbers: [palletNo.trim()] }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const exists = data.existing_pallets && data.existing_pallets.includes(palletNo.trim());
+            
+            setPalletValidation({
+              checking: false,
+              isDuplicate: exists,
+              message: exists ? `Pallet "${palletNo}" ${TOAST_MESSAGES.ERROR.DUPLICATE_PALLET.toLowerCase()}` : '',
+            });
+          } else {
+            setPalletValidation({ checking: false, isDuplicate: false, message: '' });
+          }
+        } catch (error) {
+          console.error('Error checking pallet number:', error);
+          setPalletValidation({ checking: false, isDuplicate: false, message: '' });
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    };
+
+    checkPalletNumber();
+  }, [palletNo, editingInventory, authenticatedFetch]);
+
+  // Check SKU uniqueness
+  useEffect(() => {
+    const checkSku = async () => {
+      // Skip if empty or same as original (in edit mode)
+      if (!sku || sku.trim() === '') {
+        setSkuValidation({ checking: false, isDuplicate: false, message: '' });
+        return;
+      }
+
+      // Skip if same as original SKU in edit mode
+      if (editingInventory && sku === editingInventory.item?.sku) {
+        setSkuValidation({ checking: false, isDuplicate: false, message: '' });
+        return;
+      }
+
+      // Debounce: wait 500ms after user stops typing
+      const timer = setTimeout(async () => {
+        setSkuValidation({ checking: true, isDuplicate: false, message: '' });
+
+        try {
+          const response = await authenticatedFetch('/api/dashboard/inventory/check-sku', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skus: [sku.trim()] }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const exists = data.existing_skus && data.existing_skus.includes(sku.trim());
+            
+            setSkuValidation({
+              checking: false,
+              isDuplicate: exists,
+              message: exists ? `SKU "${sku}" ${TOAST_MESSAGES.ERROR.DUPLICATE_SKU.toLowerCase()}` : '',
+            });
+          } else {
+            setSkuValidation({ checking: false, isDuplicate: false, message: '' });
+          }
+        } catch (error) {
+          console.error('Error checking SKU:', error);
+          setSkuValidation({ checking: false, isDuplicate: false, message: '' });
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    };
+
+    checkSku();
+  }, [sku, editingInventory, authenticatedFetch]);
+
+  // Auto-hide pallet success message after 5 seconds
+  useEffect(() => {
+    if (!palletValidation.checking && !palletValidation.isDuplicate && palletNo && palletNo.trim() !== '') {
+      setShowPalletSuccess(true);
+      const timer = setTimeout(() => {
+        setShowPalletSuccess(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowPalletSuccess(false);
+    }
+  }, [palletValidation.checking, palletValidation.isDuplicate, palletNo]);
+
+  // Auto-hide SKU success message after 5 seconds
+  useEffect(() => {
+    const isOriginalSku = editingInventory && sku === editingInventory.item?.sku;
+    if (!skuValidation.checking && !skuValidation.isDuplicate && sku && sku.trim() !== '' && !isOriginalSku) {
+      setShowSkuSuccess(true);
+      const timer = setTimeout(() => {
+        setShowSkuSuccess(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSkuSuccess(false);
+    }
+  }, [skuValidation.checking, skuValidation.isDuplicate, sku, editingInventory]);
 
   // Fetch inventory
   const fetchInventory = useCallback(
@@ -203,7 +362,7 @@ export function useInventory() {
       heightMm: undefined,
       weightKg: undefined,
       stackability: 'stackable',
-      topLoadRatingKg: 500,
+      topLoadRatingKg: undefined,
       orientationLocked: false,
       fragile: false,
       keepUpright: true,
@@ -211,6 +370,8 @@ export function useInventory() {
       palletNo: '',
       inventoryDate: new Date().toISOString().split('T')[0],
       locationSite: '',
+      locationLatitude: null,
+      locationLongitude: null,
       locationAisle: '',
       locationBay: '',
       locationLevel: '',
@@ -236,7 +397,7 @@ export function useInventory() {
         heightMm: inventoryUnit.item?.height_mm || 0,
         weightKg: inventoryUnit.item?.weight_kg || 0,
         stackability: inventoryUnit.item?.stackability || 'stackable',
-        topLoadRatingKg: inventoryUnit.item?.top_load_rating_kg || 500,
+        topLoadRatingKg: inventoryUnit.item?.top_load_rating_kg || undefined,
         orientationLocked: inventoryUnit.item?.orientation_locked || false,
         fragile: inventoryUnit.item?.fragile || false,
         keepUpright: inventoryUnit.item?.keep_upright !== false,
@@ -244,6 +405,8 @@ export function useInventory() {
         palletNo: inventoryUnit.pallet_no || '',
         inventoryDate: inventoryUnit.inventory_date || new Date().toISOString().split('T')[0],
         locationSite: inventoryUnit.location_site || '',
+        locationLatitude: inventoryUnit.location_latitude || null,
+        locationLongitude: inventoryUnit.location_longitude || null,
         locationAisle: inventoryUnit.location_aisle || '',
         locationBay: inventoryUnit.location_bay || '',
         locationLevel: inventoryUnit.location_level || '',
@@ -271,7 +434,7 @@ export function useInventory() {
           height_mm: data.heightMm,
           weight_kg: data.weightKg,
           stackability: data.stackability,
-          top_load_rating_kg: data.topLoadRatingKg || 500,
+          top_load_rating_kg: data.topLoadRatingKg || null,
           orientation_locked: data.orientationLocked || false,
           fragile: data.fragile || false,
           keep_upright: data.keepUpright !== undefined ? data.keepUpright : true,
@@ -279,6 +442,8 @@ export function useInventory() {
           pallet_no: data.palletNo || null,
           inventory_date: data.inventoryDate || new Date().toISOString().split('T')[0],
           location_site: data.locationSite,
+          location_latitude: data.locationLatitude || null,
+          location_longitude: data.locationLongitude || null,
           location_aisle: data.locationAisle || null,
           location_bay: data.locationBay || null,
           location_level: data.locationLevel || null,
@@ -286,6 +451,12 @@ export function useInventory() {
           quantity: data.quantity || 1,
           status: data.status,
         };
+        
+        console.log('Submitting inventory with coordinates:', {
+          location_site: apiData.location_site,
+          location_latitude: apiData.location_latitude,
+          location_longitude: apiData.location_longitude,
+        });
 
         if (editingInventory) {
           // Update existing inventory
@@ -339,6 +510,10 @@ export function useInventory() {
   const handleFormClose = useCallback(() => {
     setIsFormOpen(false);
     setEditingInventory(null);
+    setPalletValidation({ checking: false, isDuplicate: false, message: '' });
+    setSkuValidation({ checking: false, isDuplicate: false, message: '' });
+    setShowPalletSuccess(false);
+    setShowSkuSuccess(false);
     form.reset();
   }, [form]);
 
@@ -357,6 +532,10 @@ export function useInventory() {
     form,
     isFormOpen,
     editingInventory,
+    palletValidation,
+    skuValidation,
+    showPalletSuccess,
+    showSkuSuccess,
     handleCheckIn,
     handleEditInventory,
     handleFormSubmit,

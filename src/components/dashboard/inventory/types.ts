@@ -72,6 +72,8 @@ export interface InventoryUnitType extends Record<string, unknown> {
   pallet_no: string | null;
   inventory_date: string;
   location_site: string;
+  location_latitude: number | null;
+  location_longitude: number | null;
   location_aisle: string | null;
   location_bay: string | null;
   location_level: string | null;

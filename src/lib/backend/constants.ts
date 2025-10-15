@@ -39,6 +39,14 @@ export const API_RESPONSE_MESSAGES = {
     INVENTORY_CHECKIN: 'Inventory checked in successfully',
     INVENTORY_UPDATED: 'Inventory updated successfully',
     INVENTORY_DELETED: 'Inventory deleted successfully',
+    INVENTORY_FETCHED: 'Inventory fetched successfully',
+    PALLET_AVAILABLE: 'Pallet number is available',
+    SKU_AVAILABLE: 'SKU is available',
+    
+    // Import
+    IMPORT_COMPLETED: 'Import completed successfully',
+    CSV_PARSED: 'CSV file parsed successfully',
+    IMPORT_STARTED: 'Import process started',
     
     // Upload
     UPLOAD_SUCCESS: 'File uploaded successfully',
@@ -77,10 +85,22 @@ export const API_RESPONSE_MESSAGES = {
     DUPLICATE_USER: 'User with this email already exists',
     DUPLICATE_EMAIL: 'Email already exists',
     DUPLICATE_PROJECT_CODE: 'Project with this code already exists',
+    DUPLICATE_PALLET: 'Pallet number already exists',
+    DUPLICATE_SKU: 'SKU already exists',
+    INVENTORY_NOT_FOUND: 'Inventory not found',
+    CLIENT_NOT_FOUND: 'Client not found',
     
     // Permission Errors
     INVALID_PERMISSIONS: 'Invalid permissions provided',
     APP_PERMISSION_REQUIRED: 'User must have at least one app permission',
+    
+    // Import Errors
+    IMPORT_FAILED: 'Import failed',
+    CSV_PARSE_ERROR: 'Failed to parse CSV file',
+    CSV_EMPTY: 'CSV file is empty',
+    CSV_INVALID_FORMAT: 'Invalid CSV file format',
+    CSV_MISSING_HEADERS: 'CSV file missing required headers',
+    IMPORT_VALIDATION_ERROR: 'Import validation failed',
     
     // Server Errors
     SERVER_ERROR: 'Internal server error',
@@ -189,6 +209,13 @@ export const TOAST_MESSAGES = {
     INVENTORY_CHECKIN: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_CHECKIN + '!',
     INVENTORY_UPDATED: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_UPDATED + '!',
     INVENTORY_DELETED: API_RESPONSE_MESSAGES.SUCCESS.INVENTORY_DELETED + '!',
+    PALLET_AVAILABLE: API_RESPONSE_MESSAGES.SUCCESS.PALLET_AVAILABLE,
+    SKU_AVAILABLE: API_RESPONSE_MESSAGES.SUCCESS.SKU_AVAILABLE,
+    
+    // Import
+    IMPORT_COMPLETED: API_RESPONSE_MESSAGES.SUCCESS.IMPORT_COMPLETED + '!',
+    CSV_PARSED: API_RESPONSE_MESSAGES.SUCCESS.CSV_PARSED + '!',
+    IMPORT_STARTED: API_RESPONSE_MESSAGES.SUCCESS.IMPORT_STARTED + '!',
     
     // Generic
     CREATED: 'Created successfully!',
@@ -240,6 +267,25 @@ export const TOAST_MESSAGES = {
     PROJECT_UPDATE_FAILED: 'Failed to update project',
     PROJECT_DELETE_FAILED: 'Failed to delete project',
     PROJECT_FETCH_FAILED: 'Failed to fetch projects',
+    INVENTORY_CREATE_FAILED: 'Failed to check in inventory',
+    INVENTORY_UPDATE_FAILED: 'Failed to update inventory',
+    INVENTORY_DELETE_FAILED: 'Failed to delete inventory',
+    INVENTORY_FETCH_FAILED: 'Failed to fetch inventory',
+    DUPLICATE_PALLET: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_PALLET,
+    DUPLICATE_SKU: API_RESPONSE_MESSAGES.ERROR.DUPLICATE_SKU,
+    INVENTORY_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.INVENTORY_NOT_FOUND,
+    CLIENT_NOT_FOUND: API_RESPONSE_MESSAGES.ERROR.CLIENT_NOT_FOUND,
+    PALLET_CHECK_FAILED: 'Failed to check pallet number',
+    SKU_CHECK_FAILED: 'Failed to check SKU',
+    
+    // Import Errors
+    IMPORT_FAILED: API_RESPONSE_MESSAGES.ERROR.IMPORT_FAILED,
+    CSV_PARSE_ERROR: API_RESPONSE_MESSAGES.ERROR.CSV_PARSE_ERROR,
+    CSV_EMPTY: API_RESPONSE_MESSAGES.ERROR.CSV_EMPTY,
+    CSV_INVALID_FORMAT: API_RESPONSE_MESSAGES.ERROR.CSV_INVALID_FORMAT,
+    CSV_MISSING_HEADERS: API_RESPONSE_MESSAGES.ERROR.CSV_MISSING_HEADERS,
+    IMPORT_VALIDATION_ERROR: API_RESPONSE_MESSAGES.ERROR.IMPORT_VALIDATION_ERROR,
+    
     FETCH_FAILED: API_RESPONSE_MESSAGES.ERROR.FETCH_FAILED,
     SAVE_FAILED: API_RESPONSE_MESSAGES.ERROR.SAVE_FAILED,
     UPDATE_FAILED: API_RESPONSE_MESSAGES.ERROR.UPDATE_FAILED,
@@ -287,6 +333,53 @@ export const VALIDATION_MESSAGES = {
   ROLE_REQUIRED: 'Please select a role',
   PERMISSION_REQUIRED: 'Please select at least one permission',
   URL_INVALID: 'Please enter a valid URL',
+  
+  // Inventory Form Validation
+  ITEM_LABEL_MIN_LENGTH: 'Item label must be at least 2 characters',
+  ITEM_LABEL_MAX_LENGTH: 'Item label must not exceed 200 characters',
+  SKU_REQUIRED: 'SKU / Item Code is required',
+  SKU_MIN_LENGTH: 'SKU must be at least 2 characters',
+  SKU_MAX_LENGTH: 'SKU must not exceed 100 characters',
+  LENGTH_REQUIRED: 'Length is required',
+  LENGTH_MUST_BE_POSITIVE: 'Length must be greater than 0',
+  WIDTH_REQUIRED: 'Width is required',
+  WIDTH_MUST_BE_POSITIVE: 'Width must be greater than 0',
+  HEIGHT_REQUIRED: 'Height is required',
+  HEIGHT_MUST_BE_POSITIVE: 'Height must be greater than 0',
+  WEIGHT_REQUIRED: 'Weight is required',
+  WEIGHT_CANNOT_BE_NEGATIVE: 'Weight cannot be negative',
+  TOP_LOAD_RATING_NEGATIVE: 'Top load rating cannot be negative',
+  PRIORITY_MUST_BE_INTEGER: 'Priority must be an integer',
+  PRIORITY_MUST_BE_POSITIVE: 'Priority must be positive',
+  PALLET_NUMBER_REQUIRED: 'Pallet Number is required',
+  PALLET_NUMBER_MIN_LENGTH: 'Pallet Number must be at least 2 characters',
+  PALLET_NUMBER_MAX_LENGTH: 'Pallet Number must not exceed 100 characters',
+  INVENTORY_DATE_REQUIRED: 'Inventory Date is required',
+  INVENTORY_DATE_INVALID: 'Inventory Date must be a valid date',
+  QUANTITY_MUST_BE_INTEGER: 'Quantity must be an integer',
+  QUANTITY_MUST_BE_POSITIVE: 'Quantity must be positive',
+  
+  // CSV Import Validation
+  MISSING_FIELD: 'Missing',
+  DUPLICATE_IN_CSV: 'Duplicate',
+  ALREADY_EXISTS_IN_DB: 'already exists in database',
+  NEGATIVE_VALUE: 'cannot be negative',
+  INVALID_NUMBER: 'must be a valid number',
+  INVALID_DATE: 'must be a valid date (YYYY-MM-DD)',
+  INVALID_ADDRESS: 'must be a valid address',
+  INVALID_OPTION: 'has invalid value',
+  MUST_BE_TRUE_FALSE: 'must be TRUE or FALSE',
+  MUST_BE_POSITIVE: 'must be a positive number',
+  CHECKING_DATABASE: 'Checking Database...',
+  VERIFYING_RECORDS: 'Please wait while we verify records in the system.',
+  VALIDATION_PASSED: 'Validation Passed',
+  VALIDATION_FAILED: 'Validation Failed',
+  ALL_CHECKS_PASSED: 'All validation checks passed! Ready to import.',
+  FIX_ERRORS_BEFORE_IMPORT: 'Please fix the validation errors highlighted in red before importing.',
+  VALIDATION_ERRORS_FOUND: 'Validation Errors Found',
+  ROWS_WITH_ERRORS: 'rows with errors',
+  FIX_ERRORS_INSTRUCTION: 'Please fix validation errors before importing',
+  START_IMPORT_PROCESS: 'Start import process',
 } as const;
 
 // ============================================================================
