@@ -233,73 +233,176 @@ export const profileUpdateSchema = z.object({
 // Inventory form validation schema
 export const inventoryFormSchema = z.object({
   // Item details
-  clientId: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
-  projectId: z.string().optional().or(z.literal('')),
+  clientId: z.string().min(1, VALIDATION_MESSAGES.CLIENT_REQUIRED),
   label: z
     .string()
-    .min(1, VALIDATION_MESSAGES.REQUIRED)
-    .min(2, VALIDATION_MESSAGES.ITEM_LABEL_MIN_LENGTH)
-    .max(200, VALIDATION_MESSAGES.ITEM_LABEL_MAX_LENGTH),
-  sku: z
-    .string()
-    .min(1, VALIDATION_MESSAGES.SKU_REQUIRED)
-    .min(2, VALIDATION_MESSAGES.SKU_MIN_LENGTH)
-    .max(100, VALIDATION_MESSAGES.SKU_MAX_LENGTH),
+    .min(1, VALIDATION_MESSAGES.ITEM_LABEL_REQUIRED),
   description: z.string().optional().or(z.literal('')),
-  lengthMm: z.coerce.number().refine(
-    (val) => !isNaN(val) && val !== 0,
-    { message: VALIDATION_MESSAGES.LENGTH_REQUIRED }
-  ).refine(
-    (val) => val > 0,
-    { message: VALIDATION_MESSAGES.LENGTH_MUST_BE_POSITIVE }
+  lengthMm: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.LENGTH_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.LENGTH_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.LENGTH_MUST_BE_POSITIVE,
+      })
   ),
-  widthMm: z.coerce.number().refine(
-    (val) => !isNaN(val) && val !== 0,
-    { message: VALIDATION_MESSAGES.WIDTH_REQUIRED }
-  ).refine(
-    (val) => val > 0,
-    { message: VALIDATION_MESSAGES.WIDTH_MUST_BE_POSITIVE }
+  widthMm: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.WIDTH_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.WIDTH_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.WIDTH_MUST_BE_POSITIVE,
+      })
   ),
-  heightMm: z.coerce.number().refine(
-    (val) => !isNaN(val) && val !== 0,
-    { message: VALIDATION_MESSAGES.HEIGHT_REQUIRED }
-  ).refine(
-    (val) => val > 0,
-    { message: VALIDATION_MESSAGES.HEIGHT_MUST_BE_POSITIVE }
+  heightMm: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.HEIGHT_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.HEIGHT_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.HEIGHT_MUST_BE_POSITIVE,
+      })
   ),
-  weightKg: z.coerce.number().refine(
-    (val) => !isNaN(val),
-    { message: VALIDATION_MESSAGES.WEIGHT_REQUIRED }
-  ).refine(
-    (val) => val >= 0,
-    { message: VALIDATION_MESSAGES.WEIGHT_CANNOT_BE_NEGATIVE }
+  volumeM3: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.VOLUME_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.VOLUME_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.VOLUME_MUST_BE_POSITIVE,
+      })
+  ),
+  weightKg: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.WEIGHT_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.WEIGHT_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val >= 0, {
+        message: VALIDATION_MESSAGES.WEIGHT_MUST_BE_POSITIVE,
+      })
   ),
   stackability: z.enum(['stackable', 'non_stackable', 'top_only', 'bottom_only']),
-  topLoadRatingKg: z.coerce.number().nonnegative(VALIDATION_MESSAGES.TOP_LOAD_RATING_NEGATIVE).optional(),
+  topLoadRatingKg: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return { empty: true };
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.object({ empty: z.boolean() }), z.object({ invalid: z.boolean() })])
+      .refine((val) => typeof val === 'number' || !('empty' in val), {
+        message: VALIDATION_MESSAGES.TOP_LOAD_RATING_REQUIRED,
+      })
+      .refine((val) => typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.TOP_LOAD_RATING_INVALID,
+      })
+      .refine((val) => typeof val !== 'number' || val >= 0, {
+        message: VALIDATION_MESSAGES.TOP_LOAD_RATING_NEGATIVE,
+      })
+  ),
   orientationLocked: z.boolean().optional(),
   fragile: z.boolean().optional(),
   keepUpright: z.boolean().optional(),
-  priority: z.coerce.number().int(VALIDATION_MESSAGES.PRIORITY_MUST_BE_INTEGER).positive(VALIDATION_MESSAGES.PRIORITY_MUST_BE_POSITIVE).optional().nullable(),
+  priority: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null; // Optional field
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.null(), z.object({ invalid: z.boolean() })])
+      .refine((val) => val === null || typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.PRIORITY_INVALID,
+      })
+      .refine((val) => val === null || typeof val !== 'number' || Number.isInteger(val), {
+        message: VALIDATION_MESSAGES.PRIORITY_MUST_BE_INTEGER,
+      })
+      .refine((val) => val === null || typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.PRIORITY_MUST_BE_POSITIVE,
+      })
+  ).optional().nullable(),
   // Inventory unit details
   palletNo: z
     .string()
-    .min(1, VALIDATION_MESSAGES.PALLET_NUMBER_REQUIRED)
-    .min(2, VALIDATION_MESSAGES.PALLET_NUMBER_MIN_LENGTH)
-    .max(100, VALIDATION_MESSAGES.PALLET_NUMBER_MAX_LENGTH),
+    .min(1, VALIDATION_MESSAGES.PALLET_NUMBER_REQUIRED),
   inventoryDate: z
     .string()
     .min(1, VALIDATION_MESSAGES.INVENTORY_DATE_REQUIRED)
     .refine((val) => !isNaN(Date.parse(val)), {
       message: VALIDATION_MESSAGES.INVENTORY_DATE_INVALID,
     }),
-  locationSite: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
+  locationSite: z.string().min(1, VALIDATION_MESSAGES.LOCATION_SITE_REQUIRED),
   locationLatitude: z.number().optional().nullable(),
   locationLongitude: z.number().optional().nullable(),
   locationAisle: z.string().optional().or(z.literal('')),
   locationBay: z.string().optional().or(z.literal('')),
   locationLevel: z.string().optional().or(z.literal('')),
   locationNotes: z.string().optional().or(z.literal('')),
-  quantity: z.coerce.number().int(VALIDATION_MESSAGES.QUANTITY_MUST_BE_INTEGER).positive(VALIDATION_MESSAGES.QUANTITY_MUST_BE_POSITIVE).optional(),
+  quantity: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null; // Optional field
+      const num = Number(val);
+      if (isNaN(num)) return { invalid: true };
+      return num;
+    },
+    z.union([z.number(), z.null(), z.object({ invalid: z.boolean() })])
+      .refine((val) => val === null || typeof val === 'number' || !('invalid' in val), {
+        message: VALIDATION_MESSAGES.QUANTITY_INVALID,
+      })
+      .refine((val) => val === null || typeof val !== 'number' || Number.isInteger(val), {
+        message: VALIDATION_MESSAGES.QUANTITY_MUST_BE_INTEGER,
+      })
+      .refine((val) => val === null || typeof val !== 'number' || val > 0, {
+        message: VALIDATION_MESSAGES.QUANTITY_MUST_BE_POSITIVE,
+      })
+  ).optional().nullable(),
   status: z.enum(['in_storage', 'reserved', 'on_truck', 'onsite', 'returned']),
 });
 

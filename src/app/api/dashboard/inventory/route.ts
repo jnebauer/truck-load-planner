@@ -334,6 +334,7 @@ export async function POST(request: NextRequest) {
       width_mm,
       height_mm,
       weight_kg,
+      volume_m3,
       stackability,
       top_load_rating_kg,
       orientation_locked,
@@ -363,6 +364,7 @@ export async function POST(request: NextRequest) {
       !width_mm ||
       !height_mm ||
       weight_kg === undefined ||
+      volume_m3 === undefined ||
       !stackability ||
       !location_site
     ) {
@@ -378,33 +380,37 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Start transaction by creating item first
+    const itemPayload = {
+      client_id,
+      project_id: project_id || null,
+      label,
+      sku: sku || null,
+      description: description || null,
+      length_mm: parseFloat(length_mm),
+      width_mm: parseFloat(width_mm),
+      height_mm: parseFloat(height_mm),
+      weight_kg: parseFloat(weight_kg),
+      volume_m3: parseFloat(volume_m3),
+      stackability: stackability as
+        | 'stackable'
+        | 'non_stackable'
+        | 'top_only'
+        | 'bottom_only',
+      top_load_rating_kg: top_load_rating_kg
+        ? parseFloat(top_load_rating_kg)
+        : 500,
+      orientation_locked: orientation_locked || false,
+      fragile: fragile || false,
+      keep_upright: keep_upright !== undefined ? keep_upright : true,
+      priority: priority ? parseInt(priority) : null,
+      created_by: user.id,
+      updated_by: user.id,
+    };
+
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .insert({
-        client_id,
-        project_id: project_id || null,
-        label,
-        sku: sku || null,
-        description: description || null,
-        length_mm: parseFloat(length_mm),
-        width_mm: parseFloat(width_mm),
-        height_mm: parseFloat(height_mm),
-        weight_kg: parseFloat(weight_kg),
-        stackability: stackability as
-          | 'stackable'
-          | 'non_stackable'
-          | 'top_only'
-          | 'bottom_only',
-        top_load_rating_kg: top_load_rating_kg
-          ? parseFloat(top_load_rating_kg)
-          : 500,
-        orientation_locked: orientation_locked || false,
-        fragile: fragile || false,
-        keep_upright: keep_upright !== undefined ? keep_upright : true,
-        priority: priority ? parseInt(priority) : null,
-        created_by: user.id,
-        updated_by: user.id,
-      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(itemPayload as any)
       .select()
       .single();
 

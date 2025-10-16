@@ -283,7 +283,7 @@ export default function InventoryDataTable({
       columns={columns}
       actions={actions}
       searchable={true}
-      searchPlaceholder="Search by pallet number, label, SKU..."
+      searchPlaceholder="Search by pallet number, label..."
       onSearch={onSearch}
       // Server-side pagination props
       serverSidePagination={true}

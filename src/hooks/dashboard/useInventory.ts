@@ -43,13 +43,12 @@ export function useInventory() {
     resolver: zodResolver(inventoryFormSchema) as never,
     defaultValues: {
       clientId: '',
-      projectId: '',
       label: '',
-      sku: '',
       description: '',
       lengthMm: undefined,
       widthMm: undefined,
       heightMm: undefined,
+      volumeM3: undefined,
       weightKg: undefined,
       stackability: 'stackable',
       topLoadRatingKg: undefined,
@@ -82,24 +81,14 @@ export function useInventory() {
     message: '',
   });
 
-  // SKU validation state
-  const [skuValidation, setSkuValidation] = useState<{
-    checking: boolean;
-    isDuplicate: boolean;
-    message: string;
-  }>({
-    checking: false,
-    isDuplicate: false,
-    message: '',
-  });
-
-  // Success message visibility state (auto-hide after 5 seconds)
+  // Success message visibility state
   const [showPalletSuccess, setShowPalletSuccess] = useState(false);
-  const [showSkuSuccess, setShowSkuSuccess] = useState(false);
+  
+  // Track if fields are focused
+  const [isPalletFocused, setIsPalletFocused] = useState(false);
 
   // Watch fields for validation
   const palletNo = form.watch('palletNo');
-  const sku = form.watch('sku');
 
   // Check pallet number uniqueness
   useEffect(() => {
@@ -151,82 +140,17 @@ export function useInventory() {
     checkPalletNumber();
   }, [palletNo, editingInventory, authenticatedFetch]);
 
-  // Check SKU uniqueness
+  // Show/hide pallet success message based on focus and validation
   useEffect(() => {
-    const checkSku = async () => {
-      // Skip if empty or same as original (in edit mode)
-      if (!sku || sku.trim() === '') {
-        setSkuValidation({ checking: false, isDuplicate: false, message: '' });
-        return;
-      }
-
-      // Skip if same as original SKU in edit mode
-      if (editingInventory && sku === editingInventory.item?.sku) {
-        setSkuValidation({ checking: false, isDuplicate: false, message: '' });
-        return;
-      }
-
-      // Debounce: wait 500ms after user stops typing
-      const timer = setTimeout(async () => {
-        setSkuValidation({ checking: true, isDuplicate: false, message: '' });
-
-        try {
-          const response = await authenticatedFetch('/api/dashboard/inventory/check-sku', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skus: [sku.trim()] }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const exists = data.existing_skus && data.existing_skus.includes(sku.trim());
-            
-            setSkuValidation({
-              checking: false,
-              isDuplicate: exists,
-              message: exists ? `SKU "${sku}" ${TOAST_MESSAGES.ERROR.DUPLICATE_SKU.toLowerCase()}` : '',
-            });
-          } else {
-            setSkuValidation({ checking: false, isDuplicate: false, message: '' });
-          }
-        } catch (error) {
-          console.error('Error checking SKU:', error);
-          setSkuValidation({ checking: false, isDuplicate: false, message: '' });
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    };
-
-    checkSku();
-  }, [sku, editingInventory, authenticatedFetch]);
-
-  // Auto-hide pallet success message after 5 seconds
-  useEffect(() => {
-    if (!palletValidation.checking && !palletValidation.isDuplicate && palletNo && palletNo.trim() !== '') {
-      setShowPalletSuccess(true);
-      const timer = setTimeout(() => {
-        setShowPalletSuccess(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowPalletSuccess(false);
-    }
-  }, [palletValidation.checking, palletValidation.isDuplicate, palletNo]);
-
-  // Auto-hide SKU success message after 5 seconds
-  useEffect(() => {
-    const isOriginalSku = editingInventory && sku === editingInventory.item?.sku;
-    if (!skuValidation.checking && !skuValidation.isDuplicate && sku && sku.trim() !== '' && !isOriginalSku) {
-      setShowSkuSuccess(true);
-      const timer = setTimeout(() => {
-        setShowSkuSuccess(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowSkuSuccess(false);
-    }
-  }, [skuValidation.checking, skuValidation.isDuplicate, sku, editingInventory]);
+    const isOriginalPallet = editingInventory && palletNo === editingInventory.pallet_no;
+    const shouldShow = !!(isPalletFocused && 
+                       !palletValidation.checking && 
+                       !palletValidation.isDuplicate && 
+                       palletNo && 
+                       palletNo.trim() !== '' && 
+                       !isOriginalPallet);
+    setShowPalletSuccess(shouldShow);
+  }, [isPalletFocused, palletValidation.checking, palletValidation.isDuplicate, palletNo, editingInventory]);
 
   // Fetch inventory
   const fetchInventory = useCallback(
@@ -353,13 +277,12 @@ export function useInventory() {
     setEditingInventory(null);
     form.reset({
       clientId: '',
-      projectId: '',
       label: '',
-      sku: '',
       description: '',
       lengthMm: undefined,
       widthMm: undefined,
       heightMm: undefined,
+      volumeM3: undefined,
       weightKg: undefined,
       stackability: 'stackable',
       topLoadRatingKg: undefined,
@@ -388,13 +311,12 @@ export function useInventory() {
       setEditingInventory(inventoryUnit);
       form.reset({
         clientId: inventoryUnit.client_id,
-        projectId: inventoryUnit.project_id || '',
         label: inventoryUnit.item?.label || '',
-        sku: inventoryUnit.item?.sku || '',
         description: inventoryUnit.item?.description || '',
         lengthMm: inventoryUnit.item?.length_mm || 0,
         widthMm: inventoryUnit.item?.width_mm || 0,
         heightMm: inventoryUnit.item?.height_mm || 0,
+        volumeM3: inventoryUnit.item?.volume_m3 || 0,
         weightKg: inventoryUnit.item?.weight_kg || 0,
         stackability: inventoryUnit.item?.stackability || 'stackable',
         topLoadRatingKg: inventoryUnit.item?.top_load_rating_kg || undefined,
@@ -425,13 +347,12 @@ export function useInventory() {
       try {
         const apiData = {
           client_id: data.clientId,
-          project_id: data.projectId || null,
           label: data.label,
-          sku: data.sku || null,
           description: data.description || null,
           length_mm: data.lengthMm,
           width_mm: data.widthMm,
           height_mm: data.heightMm,
+          volume_m3: data.volumeM3,
           weight_kg: data.weightKg,
           stackability: data.stackability,
           top_load_rating_kg: data.topLoadRatingKg || null,
@@ -511,9 +432,8 @@ export function useInventory() {
     setIsFormOpen(false);
     setEditingInventory(null);
     setPalletValidation({ checking: false, isDuplicate: false, message: '' });
-    setSkuValidation({ checking: false, isDuplicate: false, message: '' });
     setShowPalletSuccess(false);
-    setShowSkuSuccess(false);
+    setIsPalletFocused(false);
     form.reset();
   }, [form]);
 
@@ -533,9 +453,8 @@ export function useInventory() {
     isFormOpen,
     editingInventory,
     palletValidation,
-    skuValidation,
     showPalletSuccess,
-    showSkuSuccess,
+    setIsPalletFocused,
     handleCheckIn,
     handleEditInventory,
     handleFormSubmit,

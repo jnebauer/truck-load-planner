@@ -119,6 +119,23 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
               )}
             </label>
           </div>
+
+          {/* Important Warning - Read Instructions */}
+          <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-amber-600 animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-900 mb-1">
+                  ⚠️ Please Read Instructions Before Uploading
+                </p>
+                <p className="text-xs text-amber-800">
+                  Scroll down to review the <strong>Required CSV Columns</strong> and <strong>Important Notes</strong> before uploading your file to avoid errors.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Features Grid */}
@@ -200,51 +217,66 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
             <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">REQUIRED</span>
             Required CSV Columns (Must Have These)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Client Name</span>
-              <span className="text-gray-500">- Company/Client name</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Client Email</span>
-              <span className="text-gray-500">- Valid email address</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <span className="font-medium text-gray-900">Project Name</span>
-              <span className="text-gray-500">- Project identifier</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Item Label</span>
-              <span className="text-gray-500">- Item description</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Length (mm)</span>
-              <span className="text-gray-500">- In millimeters</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Width (mm)</span>
-              <span className="text-gray-500">- In millimeters</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Height (mm)</span>
-              <span className="text-gray-500">- In millimeters</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Volume (m³)</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Weight (kg)</span>
-              <span className="text-gray-500">- In kilograms</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Stackability</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Top Load Rating (kg)</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Status</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Pallet Number</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Inventory Date</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900">Quantity</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="font-medium text-gray-900">Warehouse Site</span>
-              <span className="text-gray-500">- Location name</span>
             </div>
           </div>
         </div>
@@ -255,11 +287,10 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
             <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">OPTIONAL</span>
             Optional Columns (Recommended)
           </h3>
-          <div className="text-sm text-gray-700 space-y-1">
-            <p>• <strong>SKU, Description, Pallet Number, Inventory Date</strong></p>
-            <p>• <strong>Location Details:</strong> Aisle, Bay, Level, Location Notes</p>
-            <p>• <strong>Item Properties:</strong> Quantity, Status, Stackability, Fragile, Keep Upright, Priority</p>
-            <p>• <strong>Photo URLs:</strong> Pallet Photo URL, Label Photo URL, Racking Photo URL, Onsite Photo URL</p>
+          <div className="text-sm text-gray-700 space-y-1.5">
+            <p>• Description, Aisle, Bay, Level, Location Notes</p>
+            <p>• Orientation Locked, Fragile, Keep Upright, Loading Priority</p>
+            <p>• Pallet Photo URL, Label Photo URL, Racking Photo URL, Onsite Photo URL</p>
           </div>
         </div>
 
@@ -269,23 +300,23 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
           <ul className="space-y-2 text-sm text-amber-900">
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">1.</span>
-              <span><strong>Auto-Mapping:</strong> System will automatically match your CSV column names to our fields. Use exact names like &ldquo;Client Name&rdquo;, &ldquo;Length (mm)&rdquo; for best results.</span>
+              <span><strong>Use Sample CSV Template:</strong> Please download and use our sample CSV template. If you use your own CSV format, fields may mismatch and import will not work properly. The template has exact column names required.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">2.</span>
-              <span><strong>Client & Project:</strong> If client email exists, we&apos;ll use that client. Otherwise, we&apos;ll create a new client with a secure password.</span>
+              <span><strong>Client Email:</strong> If email exists, we&apos;ll use that client. Otherwise, we&apos;ll create a new one. Same email = same client (no duplicates).</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">3.</span>
-              <span><strong>Validation:</strong> All data will be validated in Step 3 (Review Data) before import. You can edit any cell if needed.</span>
+              <span><strong>Validation:</strong> All data validated in Step 3 (Preview). You can edit any cell before importing.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">4.</span>
-              <span><strong>Photo URLs:</strong> You can provide public image URLs, and they will be attached to inventory items.</span>
+              <span><strong>Photo URLs:</strong> Provide public image URLs, and they&apos;ll be attached to items.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">5.</span>
-              <span><strong>File Format:</strong> Only CSV files are supported. Maximum file size: 50MB.</span>
+              <span><strong>File Format:</strong> CSV only. Max size: 50MB.</span>
             </li>
           </ul>
         </div>

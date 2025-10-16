@@ -5,19 +5,55 @@ import { API_RESPONSE_MESSAGES, HTTP_STATUS } from '@/lib/backend/constants';
 import { generateSecurePassword } from '@/lib/password-utils';
 import bcrypt from 'bcryptjs';
 
+// Helper function to geocode address using Google Maps API
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.warn('Google Maps API key not found');
+      return null;
+    }
+
+    const encodedAddress = encodeURIComponent(address);
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
+    );
+
+    if (!response.ok) {
+      console.error('Geocoding API request failed:', response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      return {
+        lat: location.lat,
+        lng: location.lng,
+      };
+    } else {
+      console.warn(`Geocoding failed for address: ${address}, Status: ${data.status}`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error geocoding address:', error);
+    return null;
+  }
+}
+
 interface ImportRow {
-  // Client & Project (Required)
+  // Client (Required)
   client_name: string;
   client_email: string;
-  project_name: string;
   
   // Item fields
   label: string;
-  sku?: string;
   description?: string;
   length_mm: number;
   width_mm: number;
   height_mm: number;
+  volume_m3: number;
   weight_kg: number;
   stackability?: 'stackable' | 'non_stackable' | 'top_only' | 'bottom_only';
   top_load_rating_kg?: number;
@@ -30,6 +66,8 @@ interface ImportRow {
   pallet_no?: string;
   inventory_date?: string;
   location_site: string;
+  location_latitude?: number | null;
+  location_longitude?: number | null;
   location_aisle?: string;
   location_bay?: string;
   location_level?: string;
@@ -37,11 +75,11 @@ interface ImportRow {
   quantity?: number;
   status?: 'in_storage' | 'reserved' | 'on_truck' | 'onsite' | 'returned';
   
-  // Photo URLs (Optional)
-  pallet_photo_url?: string;
-  label_photo_url?: string;
-  racking_photo_url?: string;
-  onsite_photo_url?: string;
+  // Photo URLs (Optional) - CSV field names
+  pallet_photo?: string;
+  label_photo?: string;
+  racking_photo?: string;
+  onsite_photo?: string;
 }
 
 interface ImportResult {
@@ -83,9 +121,8 @@ export async function POST(request: NextRequest) {
       errors: [],
     };
 
-    // Client and project caches
+    // Client cache
     const clientCache = new Map<string, string>();
-    const projectCache = new Map<string, string>();
 
     // Process each row
     for (let i = 0; i < data.length; i++) {
@@ -109,22 +146,22 @@ export async function POST(request: NextRequest) {
         const width_mm = Number(row.width_mm);
         const height_mm = Number(row.height_mm);
         const weight_kg = Number(row.weight_kg);
+        const volume_m3 = Number(row.volume_m3);
         const location_site = String(row.location_site || '').trim();
         const client_name = String(row.client_name || '').trim();
         const client_email = String(row.client_email || '').trim();
-        const project_name = String(row.project_name || '').trim();
 
         // Validate required fields
-        if (!label || !length_mm || !width_mm || !height_mm || !weight_kg || !location_site) {
-          throw new Error(`Missing required fields: ${!label ? 'label, ' : ''}${!length_mm ? 'length, ' : ''}${!width_mm ? 'width, ' : ''}${!height_mm ? 'height, ' : ''}${!weight_kg ? 'weight, ' : ''}${!location_site ? 'location_site' : ''}`);
+        if (!label || !length_mm || !width_mm || !height_mm || !volume_m3 || !weight_kg || !location_site) {
+          throw new Error(`Missing required fields: ${!label ? 'label, ' : ''}${!length_mm ? 'length, ' : ''}${!width_mm ? 'width, ' : ''}${!height_mm ? 'height, ' : ''}${!volume_m3 ? 'volume, ' : ''}${!weight_kg ? 'weight, ' : ''}${!location_site ? 'location_site' : ''}`);
         }
 
         if (!client_name || !client_email) {
           throw new Error('Client name and email are required');
         }
 
-        if (!project_name) {
-          throw new Error('Project name is required');
+        if (client_name.length < 2) {
+          throw new Error('Client name must be at least 2 characters');
         }
 
         // Get clients role (fetch once, cache for all rows)
@@ -223,98 +260,30 @@ export async function POST(request: NextRequest) {
           console.error('Failed to assign app permission to client:', permError);
         }
 
-        // Get or create project (search by name for this client)
-        let projectId: string;
-        const projectKey = `${clientId}-${project_name}`;
-        
-        if (projectCache.has(projectKey)) {
-          projectId = projectCache.get(projectKey)!;
-        } else {
-          // Check if project exists for this client
-          const { data: existingProject } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('client_id', clientId)
-            .ilike('name', project_name)
-            .single();
-
-          if (existingProject) {
-            projectId = existingProject.id;
-            projectCache.set(projectKey, projectId);
-          } else {
-            // Create new project with unique code
-            // Generate base code from project name
-            const baseCode = project_name
-              .toUpperCase()
-              .replace(/[^A-Z0-9]/g, '_')
-              .substring(0, 20);
-            
-            // Check if code exists and make it unique by adding timestamp suffix if needed
-            let projectCode = baseCode;
-            let codeExists = true;
-            let attempt = 0;
-            
-            while (codeExists && attempt < 10) {
-              const { data: existingCode } = await supabase
-                .from('projects')
-                .select('id')
-                .eq('code', projectCode)
-                .single();
-              
-              if (!existingCode) {
-                codeExists = false;
-              } else {
-                // Add timestamp-based suffix to make it unique
-                const suffix = Date.now().toString().slice(-6);
-                projectCode = `${baseCode.substring(0, 14)}_${suffix}`;
-                attempt++;
-              }
-            }
-
-            const { data: newProject, error: projectError } = await supabase
-              .from('projects')
-              .insert({
-                client_id: clientId,
-                name: project_name,
-                code: projectCode,
-                status: 'active',
-                created_by: user.id,
-                updated_by: user.id,
-              })
-              .select('id')
-              .single();
-
-            if (projectError || !newProject) {
-              throw new Error(`Failed to create project: ${projectError?.message}`);
-            }
-
-            projectId = newProject.id;
-            projectCache.set(projectKey, projectId);
-          }
-        }
-
         // Create item
+        const itemPayload = {
+          client_id: clientId,
+          label: label,
+          description: row.description || null,
+          length_mm: length_mm,
+          width_mm: width_mm,
+          height_mm: height_mm,
+          volume_m3: volume_m3,
+          weight_kg: weight_kg,
+          stackability: row.stackability || 'stackable',
+          top_load_rating_kg: row.top_load_rating_kg ? parseFloat(String(row.top_load_rating_kg)) : 500,
+          orientation_locked: String(row.orientation_locked).toUpperCase() === 'TRUE',
+          fragile: String(row.fragile).toUpperCase() === 'TRUE',
+          keep_upright: String(row.keep_upright).toUpperCase() === 'TRUE',
+          priority: row.priority ? parseInt(String(row.priority)) : null,
+          created_by: user.id,
+          updated_by: user.id,
+        };
+
         const { data: newItem, error: itemError } = await supabase
           .from('items')
-          .insert({
-            client_id: clientId,
-            project_id: projectId,
-            label: label,
-            sku: row.sku || null,
-            description: row.description || null,
-            length_mm: length_mm,
-            width_mm: width_mm,
-            height_mm: height_mm,
-            weight_kg: weight_kg,
-            stackability: row.stackability || 'stackable',
-            top_load_rating_kg: row.top_load_rating_kg ? parseFloat(String(row.top_load_rating_kg)) : 500,
-            orientation_locked: row.orientation_locked || false,
-            fragile: row.fragile || false,
-            keep_upright: row.keep_upright !== undefined ? row.keep_upright : true,
-            priority: row.priority ? parseInt(String(row.priority)) : null,
-            created_by: user.id,
-            updated_by: user.id,
-          })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .insert(itemPayload as any)
           .select('id')
           .single();
 
@@ -325,15 +294,32 @@ export async function POST(request: NextRequest) {
         // Create inventory unit
         const inventoryDate = row.inventory_date || new Date().toISOString().split('T')[0];
         
-        const { data: newInventoryUnit, error: inventoryError } = await supabase
+        // Geocode address if coordinates not provided in CSV
+        let locationLatitude = row.location_latitude || null;
+        let locationLongitude = row.location_longitude || null;
+        
+        if (!locationLatitude || !locationLongitude) {
+          console.log(`Geocoding address for row ${rowNumber}: ${location_site}`);
+          const coords = await geocodeAddress(location_site);
+          if (coords) {
+            locationLatitude = coords.lat;
+            locationLongitude = coords.lng;
+            console.log(`✅ Geocoded successfully: ${coords.lat}, ${coords.lng}`);
+          } else {
+            console.warn(`⚠️ Failed to geocode address: ${location_site}`);
+          }
+        }
+        
+        const { data: newInventoryUnit, error: inventoryError} = await supabase
           .from('inventory_units')
           .insert({
             item_id: newItem.id,
             client_id: clientId,
-            project_id: projectId,
             pallet_no: row.pallet_no || null,
             inventory_date: inventoryDate,
             location_site: location_site,
+            location_latitude: locationLatitude,
+            location_longitude: locationLongitude,
             location_aisle: row.location_aisle || null,
             location_bay: row.location_bay || null,
             location_level: row.location_level || null,
@@ -352,15 +338,16 @@ export async function POST(request: NextRequest) {
 
         // Handle photo URLs if provided
         const photoMappings: Array<{ url?: string; tag: 'pallet' | 'label' | 'racking' | 'onsite' }> = [
-          { url: row.pallet_photo_url, tag: 'pallet' as const },
-          { url: row.label_photo_url, tag: 'label' as const },
-          { url: row.racking_photo_url, tag: 'racking' as const },
-          { url: row.onsite_photo_url, tag: 'onsite' as const },
+          { url: row.pallet_photo, tag: 'pallet' as const },
+          { url: row.label_photo, tag: 'label' as const },
+          { url: row.racking_photo, tag: 'racking' as const },
+          { url: row.onsite_photo, tag: 'onsite' as const },
         ];
 
         for (const photoMapping of photoMappings) {
           if (photoMapping.url && photoMapping.url.trim()) {
             try {
+              console.log(`📸 Saving ${photoMapping.tag} photo for row ${rowNumber}:`, photoMapping.url.trim());
               // Insert photo record with URL
               const { error: mediaError } = await supabase.from('media').insert({
                 inventory_unit_id: newInventoryUnit.id,
@@ -372,11 +359,13 @@ export async function POST(request: NextRequest) {
               });
               
               if (mediaError) {
-                console.error(`Failed to add ${photoMapping.tag} photo for row ${rowNumber}:`, mediaError);
+                console.error(`❌ Failed to add ${photoMapping.tag} photo for row ${rowNumber}:`, mediaError);
+              } else {
+                console.log(`✅ Successfully saved ${photoMapping.tag} photo for row ${rowNumber}`);
               }
             } catch (photoError) {
               // Log photo error but don't fail the entire import
-              console.error(`Failed to add ${photoMapping.tag} photo for row ${rowNumber}:`, photoError);
+              console.error(`❌ Exception adding ${photoMapping.tag} photo for row ${rowNumber}:`, photoError);
             }
           }
         }

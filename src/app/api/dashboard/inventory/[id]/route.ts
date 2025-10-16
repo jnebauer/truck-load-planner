@@ -135,6 +135,7 @@ export async function PATCH(
       width_mm,
       height_mm,
       weight_kg,
+      volume_m3,
       stackability,
       top_load_rating_kg,
       orientation_locked,
@@ -147,9 +148,9 @@ export async function PATCH(
     if (currentUnit.item_id && (client_id !== undefined || project_id !== undefined || 
         label || sku !== undefined || description !== undefined || 
         length_mm !== undefined || width_mm !== undefined || height_mm !== undefined || 
-        weight_kg !== undefined || stackability || top_load_rating_kg !== undefined || 
-        orientation_locked !== undefined || fragile !== undefined || 
-        keep_upright !== undefined || priority !== undefined)) {
+        weight_kg !== undefined || volume_m3 !== undefined || stackability || 
+        top_load_rating_kg !== undefined || orientation_locked !== undefined || 
+        fragile !== undefined || keep_upright !== undefined || priority !== undefined)) {
       
       const itemUpdates: Record<string, unknown> = {
         updated_by: user.id,
@@ -167,6 +168,7 @@ export async function PATCH(
       if (width_mm !== undefined) itemUpdates.width_mm = parseFloat(width_mm);
       if (height_mm !== undefined) itemUpdates.height_mm = parseFloat(height_mm);
       if (weight_kg !== undefined) itemUpdates.weight_kg = parseFloat(weight_kg);
+      if (volume_m3 !== undefined) itemUpdates.volume_m3 = parseFloat(volume_m3);
       if (stackability) itemUpdates.stackability = stackability;
       if (top_load_rating_kg !== undefined) itemUpdates.top_load_rating_kg = parseFloat(top_load_rating_kg);
       if (orientation_locked !== undefined) itemUpdates.orientation_locked = orientation_locked;
@@ -176,7 +178,8 @@ export async function PATCH(
 
       const { error: itemUpdateError } = await supabase
         .from('items')
-        .update(itemUpdates)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(itemUpdates as any)
         .eq('id', currentUnit.item_id);
 
       if (itemUpdateError) {

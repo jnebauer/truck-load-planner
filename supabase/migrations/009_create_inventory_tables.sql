@@ -74,10 +74,8 @@ CREATE TABLE items (
   height_mm NUMERIC NOT NULL CHECK (height_mm > 0),
   weight_kg NUMERIC NOT NULL CHECK (weight_kg >= 0),
   
-  -- Calculated Volume (auto-generated)
-  volume_m3 NUMERIC GENERATED ALWAYS AS (
-    ROUND((length_mm * width_mm * height_mm) / 1000000000.0, 3)
-  ) STORED,
+  -- Volume (in cubic meters, manually entered)
+  volume_m3 NUMERIC NOT NULL CHECK (volume_m3 > 0),
   
   -- Stacking Properties
   stackability stackability NOT NULL DEFAULT 'stackable',
@@ -109,7 +107,7 @@ CREATE INDEX idx_items_qr_code ON items(qr_code) WHERE qr_code IS NOT NULL;
 
 -- Comments
 COMMENT ON TABLE items IS 'Catalog of item types (pallet/case types) with dimensions and stacking properties';
-COMMENT ON COLUMN items.volume_m3 IS 'Auto-calculated volume in cubic meters';
+COMMENT ON COLUMN items.volume_m3 IS 'Volume in cubic meters (manually entered)';
 COMMENT ON COLUMN items.priority IS 'Loading priority: 1 = floor/rigging (first), higher = later phases';
 COMMENT ON COLUMN items.top_load_rating_kg IS 'Maximum weight this item can support on top (kg)';
 
@@ -124,8 +122,8 @@ CREATE TABLE inventory_units (
   
   -- References
   item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-  client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   
   -- Identification
   pallet_no TEXT,
@@ -140,6 +138,10 @@ CREATE TABLE inventory_units (
   location_level TEXT,                  -- e.g., "1"
   location_notes TEXT,
   
+  -- Last Usage Tracking (for project history)
+  last_used_project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  
   -- Quantity (usually 1, but can be multiple units of same item on same pallet)
   quantity INTEGER DEFAULT 1 CHECK (quantity > 0),
   
@@ -153,26 +155,24 @@ CREATE TABLE inventory_units (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  
-  -- Constraint: pallet_no must be unique per (client_id, location_site)
-  CONSTRAINT unique_pallet_no UNIQUE NULLS NOT DISTINCT (client_id, location_site, pallet_no)
+  updated_by UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Indexes for performance
 CREATE INDEX idx_inventory_units_item_id ON inventory_units(item_id);
 CREATE INDEX idx_inventory_units_client_id ON inventory_units(client_id);
-CREATE INDEX idx_inventory_units_project_id ON inventory_units(project_id);
 CREATE INDEX idx_inventory_units_client_status ON inventory_units(client_id, status);
-CREATE INDEX idx_inventory_units_client_project_status ON inventory_units(client_id, project_id, status);
 CREATE INDEX idx_inventory_units_location ON inventory_units(location_site, location_aisle, location_bay, location_level);
 CREATE INDEX idx_inventory_units_pallet_no ON inventory_units(pallet_no) WHERE pallet_no IS NOT NULL;
 CREATE INDEX idx_inventory_units_created_at ON inventory_units(created_at DESC);
+CREATE INDEX idx_inventory_units_last_used_project ON inventory_units(last_used_project_id) WHERE last_used_project_id IS NOT NULL;
 
 -- Comments
 COMMENT ON TABLE inventory_units IS 'Physical inventory instances (1 row per pallet/case in warehouse)';
 COMMENT ON COLUMN inventory_units.pallet_no IS 'Physical pallet number/identifier from spreadsheet';
 COMMENT ON COLUMN inventory_units.quantity IS 'Number of units on this pallet (usually 1)';
+COMMENT ON COLUMN inventory_units.last_used_project_id IS 'Last project where this inventory was used (on_truck/onsite)';
+COMMENT ON COLUMN inventory_units.last_used_at IS 'Timestamp when inventory was last used in a project';
 
 -- =====================================================
 -- MEDIA TABLE (Photos/Files)

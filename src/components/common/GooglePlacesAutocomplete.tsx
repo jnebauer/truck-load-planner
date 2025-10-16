@@ -21,6 +21,8 @@ interface GooglePlacesAutocompleteProps {
   error?: string;
   required?: boolean;
   icon?: React.ReactNode;
+  showHints?: boolean; // Show helper messages (default: true)
+  hideErrorText?: boolean; // Hide error text but keep red border (default: false)
 }
 
 /**
@@ -44,6 +46,8 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
   error,
   required = false,
   icon,
+  showHints = true,
+  hideErrorText = false,
 }) => {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -257,16 +261,16 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
         disabled={isLoading}
         autoComplete="off"
       />
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {isLoading && !hasError && (
+      {error && !hideErrorText && <p className="text-sm text-red-500">{error}</p>}
+      {showHints && isLoading && !hasError && (
         <p className="text-xs text-gray-500">Loading Google Maps...</p>
       )}
-      {hasError && (
+      {showHints && hasError && (
         <p className="text-xs text-yellow-600">
           ⚠️ Google Maps autocomplete unavailable. You can still enter the address manually.
         </p>
       )}
-      {isLoaded && !hasError && (
+      {showHints && isLoaded && !hasError && (
         <p className="text-xs text-gray-500">
           💡 Start typing to see address suggestions
         </p>

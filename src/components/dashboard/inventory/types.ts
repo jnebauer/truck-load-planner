@@ -42,7 +42,7 @@ export interface ItemType {
   width_mm: number;
   height_mm: number;
   weight_kg: number;
-  volume_m3: number | null;
+  volume_m3: number;
   stackability: StackabilityType;
   top_load_rating_kg: number | null;
   orientation_locked: boolean | null;

@@ -4,8 +4,6 @@ import React from 'react';
 import {
   Package,
   User,
-  FolderKanban,
-  Tag,
   Ruler,
   Weight,
   Layers,
@@ -38,13 +36,8 @@ interface CheckInFormProps {
     isDuplicate: boolean;
     message: string;
   };
-  skuValidation: {
-    checking: boolean;
-    isDuplicate: boolean;
-    message: string;
-  };
   showPalletSuccess: boolean;
-  showSkuSuccess: boolean;
+  setIsPalletFocused: (focused: boolean) => void;
 }
 
 export default function CheckInForm({
@@ -58,14 +51,10 @@ export default function CheckInForm({
   watch,
   control,
   palletValidation,
-  skuValidation,
   showPalletSuccess,
-  showSkuSuccess,
+  setIsPalletFocused,
 }: CheckInFormProps) {
   const clientId = watch('clientId');
-  const projectId = watch('projectId');
-  const palletNo = watch('palletNo');
-  const sku = watch('sku');
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col h-full">
@@ -97,7 +86,6 @@ export default function CheckInForm({
           value={clientId || ''}
           onChange={(value) => {
             setValue('clientId', value);
-            setValue('projectId', ''); // Reset project when client changes
           }}
           placeholder="Search and select client..."
           apiEndpoint="/api/dashboard/clients/dropdown"
@@ -113,43 +101,6 @@ export default function CheckInForm({
               : undefined
           }
         />
-
-        {/* Project Selection (Optional) */}
-        {clientId ? (
-          <SearchableSelect
-            label="Project (Optional)"
-            value={projectId || ''}
-            onChange={(value) => {
-              setValue('projectId', value);
-            }}
-            placeholder="Search and select project..."
-            apiEndpoint="/api/dashboard/projects/dropdown"
-            disabled={isSubmitting || !clientId}
-            error={errors.projectId?.message}
-            required={false}
-            icon={<FolderKanban className="h-4 w-4" />}
-            filters={{ clientId: clientId }}
-            dataKey="data"
-            selectedLabel={
-              editingInventory?.project
-                ? `${editingInventory.project.name} (${editingInventory.project.code})`
-                : undefined
-            }
-          />
-        ) : (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FolderKanban className="h-4 w-4 inline mr-1" />
-              Project (Optional)
-            </label>
-            <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
-              Please select a client first
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Projects will be available after selecting a client
-            </p>
-          </div>
-        )}
 
         {/* Divider */}
         <div className="border-t border-gray-200 pt-6">
@@ -174,58 +125,6 @@ export default function CheckInForm({
           )}
         </div>
 
-        {/* SKU - Full Width */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Tag className="h-4 w-4 inline mr-1" />
-            SKU / Item Code <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              {...register('sku')}
-              placeholder="e.g., WP-2400"
-              className={`w-full px-3 py-2 pr-10 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                sku && skuValidation.isDuplicate
-                  ? 'border-red-500 bg-red-50'
-                  : sku && !skuValidation.checking && !skuValidation.isDuplicate && sku.trim() !== '' && (editingInventory ? sku !== editingInventory.item?.sku : true)
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300'
-              }`}
-              disabled={isSubmitting}
-            />
-            {/* Validation Icon */}
-            {sku && sku.trim() !== '' && (
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                {skuValidation.checking ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                ) : skuValidation.isDuplicate ? (
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                ) : (editingInventory ? sku !== editingInventory.item?.sku : true) ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : null}
-              </div>
-            )}
-          </div>
-          {/* Validation Message */}
-          {skuValidation.message && (
-            <p className="mt-1 text-sm text-red-600 flex items-center">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              {skuValidation.message}
-            </p>
-          )}
-          {/* Available Message - Auto-hide after 5 seconds */}
-          {showSkuSuccess && (
-            <p className="mt-1 text-sm text-green-600 flex items-center">
-              <Check className="h-3 w-3 mr-1" />
-              {TOAST_MESSAGES.SUCCESS.SKU_AVAILABLE}
-            </p>
-          )}
-          {errors.sku && (
-            <p className="mt-1 text-sm text-red-600">{errors.sku.message}</p>
-          )}
-        </div>
-
         {/* Description - Full Width */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -234,9 +133,9 @@ export default function CheckInForm({
           </label>
           <textarea
             {...register('description')}
-            rows={2}
+            rows={3}
             placeholder="Brief description of the item..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
             disabled={isSubmitting}
           />
           {errors.description && (
@@ -244,19 +143,20 @@ export default function CheckInForm({
           )}
         </div>
 
-        {/* Dimensions - Grid (Length, Width, Height) */}
+        {/* Dimensions - Grid (Length, Width, Height, Volume) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Ruler className="h-4 w-4 inline mr-1" />
             Dimensions (mm) <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-3 gap-4">
+          {/* Length & Width */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <input
                 type="number"
                 min="1"
                 step="0.01"
-                {...register('lengthMm', { valueAsNumber: true })}
+                {...register('lengthMm')}
                 placeholder="Length"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isSubmitting}
@@ -270,7 +170,7 @@ export default function CheckInForm({
                 type="number"
                 min="1"
                 step="0.01"
-                {...register('widthMm', { valueAsNumber: true })}
+                {...register('widthMm')}
                 placeholder="Width"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isSubmitting}
@@ -279,18 +179,35 @@ export default function CheckInForm({
                 <p className="mt-1 text-sm text-red-600">{errors.widthMm.message}</p>
               )}
             </div>
+          </div>
+          {/* Height & Volume */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <input
                 type="number"
                 min="1"
                 step="0.01"
-                {...register('heightMm', { valueAsNumber: true })}
+                {...register('heightMm')}
                 placeholder="Height"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isSubmitting}
               />
               {errors.heightMm && (
                 <p className="mt-1 text-sm text-red-600">{errors.heightMm.message}</p>
+              )}
+            </div>
+            <div>
+              <input
+                type="number"
+                min="0"
+                step="0.001"
+                {...register('volumeM3')}
+                placeholder="Volume (m³)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isSubmitting}
+              />
+              {errors.volumeM3 && (
+                <p className="mt-1 text-sm text-red-600">{errors.volumeM3.message}</p>
               )}
             </div>
           </div>
@@ -306,7 +223,7 @@ export default function CheckInForm({
             type="number"
             min="0"
             step="0.1"
-            {...register('weightKg', { valueAsNumber: true })}
+            {...register('weightKg')}
             placeholder="e.g., 450.5"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isSubmitting}
@@ -339,17 +256,22 @@ export default function CheckInForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Top Load Rating (kg)
+              Top Load Rating (kg) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               min="0"
               step="0.1"
-              {...register('topLoadRatingKg', { valueAsNumber: true })}
+              {...register('topLoadRatingKg')}
               placeholder="500"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.topLoadRatingKg ? 'border-red-500' : 'border-gray-300'
+              }`}
               disabled={isSubmitting}
             />
+            {errors.topLoadRatingKg && (
+              <p className="mt-1 text-sm text-red-600">{errors.topLoadRatingKg.message}</p>
+            )}
           </div>
         </div>
 
@@ -403,14 +325,21 @@ export default function CheckInForm({
             type="number"
             min="1"
             step="1"
-            {...register('priority', { valueAsNumber: true })}
+            {...register('priority')}
             placeholder="e.g., 1"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.priority ? 'border-red-500' : 'border-gray-300'
+            }`}
             disabled={isSubmitting}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Lower numbers load first (e.g., 1 = floor/rigging, 5 = furniture)
-          </p>
+          {errors.priority && (
+            <p className="mt-1 text-sm text-red-600">{errors.priority.message}</p>
+          )}
+          {!errors.priority && (
+            <p className="mt-1 text-xs text-gray-500">
+              Lower numbers load first (e.g., 1 = floor/rigging, 5 = furniture)
+            </p>
+          )}
         </div>
 
         {/* Divider */}
@@ -430,11 +359,11 @@ export default function CheckInForm({
                 type="text"
                 {...register('palletNo')}
                 placeholder="e.g., P-001"
+                onFocus={() => setIsPalletFocused(true)}
+                onBlur={() => setIsPalletFocused(false)}
                 className={`w-full px-3 py-2 pr-10 border rounded-lg text-gray-900 focus:ring-2 focus:border-transparent ${
                   palletValidation.isDuplicate
                     ? 'border-red-500 focus:ring-red-500'
-                    : palletNo && !palletValidation.checking && !palletValidation.isDuplicate
-                    ? 'border-green-500 focus:ring-green-500'
                     : 'border-gray-300 focus:ring-blue-500'
                 }`}
                 disabled={isSubmitting}
@@ -445,9 +374,6 @@ export default function CheckInForm({
                 )}
                 {!palletValidation.checking && palletValidation.isDuplicate && (
                   <AlertCircle className="h-5 w-5 text-red-500" />
-                )}
-                {!palletValidation.checking && palletNo && !palletValidation.isDuplicate && palletNo.trim() !== '' && (
-                  <Check className="h-5 w-5 text-green-500" />
                 )}
               </div>
             </div>
@@ -568,7 +494,7 @@ export default function CheckInForm({
           </label>
           <textarea
             {...register('locationNotes')}
-            rows={2}
+            rows={3}
             placeholder="Additional location details..."
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isSubmitting}
@@ -627,14 +553,12 @@ export default function CheckInForm({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting || palletValidation.checking || palletValidation.isDuplicate || skuValidation.checking || skuValidation.isDuplicate}
+          disabled={isSubmitting || palletValidation.checking || palletValidation.isDuplicate}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           title={
             palletValidation.isDuplicate 
               ? TOAST_MESSAGES.ERROR.DUPLICATE_PALLET 
-              : skuValidation.isDuplicate 
-              ? TOAST_MESSAGES.ERROR.DUPLICATE_SKU 
-              : palletValidation.checking || skuValidation.checking 
+              : palletValidation.checking 
               ? 'Validating...' 
               : ''
           }
@@ -644,7 +568,7 @@ export default function CheckInForm({
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
               {editingInventory ? 'Updating...' : 'Checking In...'}
             </>
-          ) : palletValidation.checking || skuValidation.checking ? (
+          ) : palletValidation.checking ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
               Validating...

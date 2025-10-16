@@ -119,7 +119,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         {label} {required && <span className="text-red-500">*</span>}
       </label>
 
-      <div className="flex items-start space-x-4">
+      <div className="wefsdv dff flex items-start space-x-4">
         {/* Preview */}
         {preview ? (
           <div className="relative w-32 h-32 rounded-lg border-2 border-gray-300 overflow-hidden bg-gray-100">

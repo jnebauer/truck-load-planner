@@ -28,9 +28,8 @@ export default function InventoryPage() {
     isFormOpen,
     editingInventory,
     palletValidation,
-    skuValidation,
     showPalletSuccess,
-    showSkuSuccess,
+    setIsPalletFocused,
     handleCheckIn,
     handleEditInventory,
     handleFormSubmit,
@@ -104,9 +103,8 @@ export default function InventoryPage() {
           watch={form.watch}
           control={form.control}
           palletValidation={palletValidation}
-          skuValidation={skuValidation}
           showPalletSuccess={showPalletSuccess}
-          showSkuSuccess={showSkuSuccess}
+          setIsPalletFocused={setIsPalletFocused}
         />
       </Drawer>
     </div>

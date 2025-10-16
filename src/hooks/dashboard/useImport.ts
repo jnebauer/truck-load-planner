@@ -58,11 +58,9 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
   // Loading states
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingPallets, setIsCheckingPallets] = useState(false);
-  const [isCheckingSkus, setIsCheckingSkus] = useState(false);
   
   // Validation state
   const [existingPallets, setExistingPallets] = useState<Set<string>>(new Set());
-  const [existingSkus, setExistingSkus] = useState<Set<string>>(new Set());
   
   // Import progress (0-100)
   const [importProgress, setImportProgress] = useState(0);
@@ -88,7 +86,44 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
           const data = results.data as ParsedRow[];
           const headers = results.meta.fields || [];
 
-          setCsvData(data);
+          // Auto-correct common field values after parsing
+          const sanitizedData = data.map((row) => {
+            const sanitizedRow = { ...row };
+            
+            // Auto-correct stackability
+            const stackabilityValue = String(row.stackability || '').trim().toLowerCase();
+            const validStackOptions = ['stackable', 'non_stackable', 'top_only', 'bottom_only'];
+            if (!validStackOptions.includes(stackabilityValue)) {
+              sanitizedRow.stackability = 'stackable';
+            }
+            
+            // Auto-correct status
+            const statusValue = String(row.status || '').trim().toLowerCase();
+            const validStatusOptions = ['in_storage', 'reserved', 'on_truck', 'onsite', 'returned'];
+            if (!validStatusOptions.includes(statusValue)) {
+              sanitizedRow.status = 'in_storage';
+            }
+            
+            // Auto-correct boolean fields (case insensitive TRUE -> TRUE, everything else -> FALSE)
+            const sanitizeBoolean = (value: string | number | null | undefined): string => {
+              const strValue = String(value || '').trim().toUpperCase();
+              return strValue === 'TRUE' ? 'TRUE' : 'FALSE';
+            };
+            
+            if (row.orientation_locked !== undefined) {
+              sanitizedRow.orientation_locked = sanitizeBoolean(row.orientation_locked);
+            }
+            if (row.fragile !== undefined) {
+              sanitizedRow.fragile = sanitizeBoolean(row.fragile);
+            }
+            if (row.keep_upright !== undefined) {
+              sanitizedRow.keep_upright = sanitizeBoolean(row.keep_upright);
+            }
+            
+            return sanitizedRow;
+          });
+
+          setCsvData(sanitizedData);
           setCsvHeaders(headers);
 
           // Auto-map columns
@@ -119,6 +154,8 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
               if (normalizedHeader === fieldLabel) return true;
               // Exact field name match
               if (cleanHeader === cleanFieldName) return true;
+              // Database field starts with CSV header (e.g., CSV: "pallet_photo" → DB: "pallet_photo_url")
+              if (cleanFieldName.startsWith(cleanHeader) && cleanHeader.length > 3) return true;
               // Field name is contained in header
               if (cleanHeader.includes(cleanFieldName) && cleanFieldName.length > 3) return true;
               // Label is contained in header  
@@ -149,6 +186,8 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
               if (normalizedHeader === fieldLabel) return true;
               // Exact field name match
               if (cleanHeader === cleanFieldName) return true;
+              // Database field starts with CSV header (e.g., CSV: "pallet_photo" → DB: "pallet_photo_url")
+              if (cleanFieldName.startsWith(cleanHeader) && cleanHeader.length > 3) return true;
               // Field name is contained in header
               if (cleanHeader.includes(cleanFieldName) && cleanFieldName.length > 3) return true;
               // Label is contained in header
@@ -238,59 +277,6 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
     };
 
     checkExistingPallets();
-  }, [step, csvData, editedData, columnMappings, authenticatedFetch]);
-
-  /**
-   * Check for existing SKUs in database
-   */
-  useEffect(() => {
-    const checkExistingSkus = async () => {
-      if (step !== 'preview') {
-        return;
-      }
-
-      // Get all SKUs from CSV
-      const skuMapping = columnMappings.find(m => m.dbField === 'sku');
-      if (!skuMapping) {
-        setExistingSkus(new Set());
-        return;
-      }
-
-      const dataToCheck = editedData.length > 0 ? editedData : csvData;
-      const skus = dataToCheck
-        .map(row => String(row[skuMapping.csvColumn] || '').trim())
-        .filter(sku => sku !== '');
-
-      if (skus.length === 0) {
-        setExistingSkus(new Set());
-        return;
-      }
-
-      setIsCheckingSkus(true);
-
-      try {
-        const response = await authenticatedFetch('/api/dashboard/inventory/check-sku', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ skus }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setExistingSkus(new Set(data.existing_skus || []));
-        } else {
-          console.error('Failed to check SKUs');
-          setExistingSkus(new Set());
-        }
-      } catch (error) {
-        console.error('Error checking SKUs:', error);
-        setExistingSkus(new Set());
-      } finally {
-        setIsCheckingSkus(false);
-      }
-    };
-
-    checkExistingSkus();
   }, [step, csvData, editedData, columnMappings, authenticatedFetch]);
 
   /**
@@ -426,11 +412,9 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
     // Loading states
     isUploading,
     isCheckingPallets,
-    isCheckingSkus,
     
     // Validation
     existingPallets,
-    existingSkus,
     
     // Import progress
     importProgress,

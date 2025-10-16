@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Trash2, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { ImageUpload } from '@/components/common';
+import { Trash2, X, Upload, Camera } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
 
@@ -21,11 +20,39 @@ interface PhotoGalleryProps {
   hasPermission: (permission: string) => boolean;
 }
 
-const TAG_LABELS = {
-  pallet: { label: 'Pallet Photo', color: 'bg-blue-100 text-blue-800' },
-  label: { label: 'Label Photo', color: 'bg-green-100 text-green-800' },
-  racking: { label: 'Location Photo', color: 'bg-yellow-100 text-yellow-800' },
-  onsite: { label: 'Onsite Photo', color: 'bg-purple-100 text-purple-800' },
+const TAG_CONFIG = {
+  pallet: {
+    label: 'Pallet',
+    description: 'Photos of the pallet itself',
+    gradient: 'from-blue-500 to-blue-600',
+    bgLight: 'bg-blue-50',
+    textColor: 'text-blue-600',
+    icon: '📦',
+  },
+  label: {
+    label: 'Label',
+    description: 'Close-up photos of labels',
+    gradient: 'from-emerald-500 to-emerald-600',
+    bgLight: 'bg-emerald-50',
+    textColor: 'text-emerald-600',
+    icon: '🏷️',
+  },
+  racking: {
+    label: 'Racking',
+    description: 'Location & racking photos',
+    gradient: 'from-amber-500 to-amber-600',
+    bgLight: 'bg-amber-50',
+    textColor: 'text-amber-600',
+    icon: '📍',
+  },
+  onsite: {
+    label: 'Onsite',
+    description: 'Photos from the site',
+    gradient: 'from-purple-500 to-purple-600',
+    bgLight: 'bg-purple-50',
+    textColor: 'text-purple-600',
+    icon: '🏢',
+  },
 };
 
 export default function PhotoGallery({
@@ -35,52 +62,79 @@ export default function PhotoGallery({
   hasPermission,
 }: PhotoGalleryProps) {
   const { authenticatedFetch } = useAuth();
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedTag, setSelectedTag] = useState<'pallet' | 'label' | 'racking' | 'onsite'>('pallet');
+  const [uploadingTag, setUploadingTag] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const fileInputRefs = {
+    pallet: useRef<HTMLInputElement>(null),
+    label: useRef<HTMLInputElement>(null),
+    racking: useRef<HTMLInputElement>(null),
+    onsite: useRef<HTMLInputElement>(null),
+  };
 
   const handlePhotoUpload = useCallback(
-    async (imageUrl: string) => {
-      if (!imageUrl) return;
+    async (file: File, tag: string) => {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        showToast.error('Invalid file type. Only JPEG, PNG, GIF, and WebP allowed');
+        return;
+      }
 
-      setIsUploading(true);
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showToast.error('File size too large. Maximum 5MB');
+        return;
+      }
+
+      setUploadingTag(tag);
       try {
-        const response = await authenticatedFetch(
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'inventory');
+
+        const uploadResponse = await authenticatedFetch('/api/upload/image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const { data: uploadData } = await uploadResponse.json();
+
+        const mediaResponse = await authenticatedFetch(
           `/api/dashboard/inventory/${inventoryUnitId}/media`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              url: imageUrl,
-              tag: selectedTag,
-              content_type: 'image/jpeg',
+              url: uploadData.url,
+              tag,
+              content_type: file.type,
             }),
           }
         );
 
-        if (response.ok) {
-          showToast.success('Photo uploaded successfully!');
-          setShowUploadModal(false);
+        if (mediaResponse.ok) {
           onPhotosUpdate();
         } else {
-          const data = await response.json();
-          showToast.error(data.error || 'Failed to upload photo');
+          const data = await mediaResponse.json();
+          showToast.error(data.error || 'Failed to save photo');
         }
       } catch (error) {
         console.error('Error uploading photo:', error);
-        showToast.error('Failed to upload photo');
+        showToast.error(error instanceof Error ? error.message : 'Failed to upload photo');
       } finally {
-        setIsUploading(false);
+        setUploadingTag(null);
       }
     },
-    [inventoryUnitId, selectedTag, authenticatedFetch, onPhotosUpdate]
+    [inventoryUnitId, authenticatedFetch, onPhotosUpdate]
   );
 
   const handleDeletePhoto = useCallback(
     async (photoId: string) => {
-      if (!confirm('Are you sure you want to delete this photo?')) return;
-
       try {
         const response = await authenticatedFetch(
           `/api/dashboard/inventory/${inventoryUnitId}/media?media_id=${photoId}`,
@@ -90,8 +144,7 @@ export default function PhotoGallery({
         );
 
         if (response.ok) {
-          showToast.success('Photo deleted successfully!');
-          setSelectedPhoto(null);
+          showToast.success('Photo deleted!');
           onPhotosUpdate();
         } else {
           const data = await response.json();
@@ -105,166 +158,251 @@ export default function PhotoGallery({
     [inventoryUnitId, authenticatedFetch, onPhotosUpdate]
   );
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, tag: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handlePhotoUpload(file, tag);
+      const ref = fileInputRefs[tag as keyof typeof fileInputRefs];
+      if (ref.current) {
+        ref.current.value = '';
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, tag: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(tag);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target) {
+      setIsDragging(null);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, tag: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(null);
+
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      await handlePhotoUpload(file, tag);
+    }
+  };
+
   const groupedPhotos = photos.reduce((acc, photo) => {
     if (!acc[photo.tag]) acc[photo.tag] = [];
     acc[photo.tag].push(photo);
     return acc;
   }, {} as Record<string, Photo[]>);
 
+  // If no photos at all, show empty state
+  if (photos.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="mx-auto w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
+          <Camera className="h-10 w-10 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Photos Yet</h3>
+        <p className="text-sm text-gray-500 mb-6">Start by uploading photos to different categories</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
+          {Object.entries(TAG_CONFIG).map(([tag, config]) => (
+            <button
+              key={tag}
+              onClick={() => fileInputRefs[tag as keyof typeof fileInputRefs].current?.click()}
+              disabled={!hasPermission('inventory.update') || uploadingTag === tag}
+              className={`p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all ${
+                !hasPermission('inventory.update') ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <span className="text-3xl mb-2 block">{config.icon}</span>
+              <p className="text-sm font-medium text-gray-700">{config.label}</p>
+              <input
+                ref={fileInputRefs[tag as keyof typeof fileInputRefs]}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => handleFileSelect(e, tag)}
+                className="hidden"
+                disabled={!hasPermission('inventory.update') || uploadingTag === tag}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Camera className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900">Photos</h3>
-          <span className="text-sm text-gray-500">({photos.length})</span>
-        </div>
-        {hasPermission('inventory.update') && (
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Photo
-          </button>
-        )}
-      </div>
-
-      {/* Photo Grid by Tag */}
-      {photos.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm text-gray-500">No photos uploaded yet</p>
-          {hasPermission('inventory.update') && (
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Add First Photo
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(TAG_LABELS).map(([tag, { label, color }]) => {
-            const tagPhotos = groupedPhotos[tag] || [];
-            if (tagPhotos.length === 0) return null;
-
-            return (
-              <div key={tag}>
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-                    {label}
-                  </span>
-                  <span className="text-sm text-gray-500">({tagPhotos.length})</span>
+      {/* Photo Sections */}
+      {Object.entries(TAG_CONFIG).map(([tag, config], index) => {
+        const tagPhotos = groupedPhotos[tag] || [];
+        const isFirstSection = index === 0;
+        
+        return (
+          <div key={tag}>
+            {/* Horizontal Separator Line */}
+            {!isFirstSection && (
+              <div className="border-t border-gray-200 mb-6" />
+            )}
+            
+            <div className="group">
+              {/* Section Header */}
+              <div className="flex items-center space-x-3 mb-4">
+                <div className={`w-10 h-10 bg-gradient-to-br ${config.gradient} rounded-lg flex items-center justify-center shadow-md`}>
+                  <span className="text-xl">{config.icon}</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">{config.label}</h3>
+                  <p className="text-xs text-gray-500">
+                    {tagPhotos.length} {tagPhotos.length === 1 ? 'photo' : 'photos'}
+                  </p>
+                </div>
+                
+                <input
+                  ref={fileInputRefs[tag as keyof typeof fileInputRefs]}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={(e) => handleFileSelect(e, tag)}
+                  className="hidden"
+                  disabled={uploadingTag === tag}
+                />
+              </div>
+
+              {/* Drag & Drop Zone */}
+              {hasPermission('inventory.update') && (
+                <div 
+                  className={`mb-4 p-4 rounded-lg border-2 border-dashed transition-all ${
+                    isDragging === tag 
+                      ? `${config.bgLight} border-gray-400 scale-[1.02]` 
+                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, tag)}
+                  onDragLeave={(e) => handleDragLeave(e)}
+                  onDrop={(e) => handleDrop(e, tag)}
+                  onClick={() => fileInputRefs[tag as keyof typeof fileInputRefs].current?.click()}
+                >
+                  <div className="flex items-center justify-center gap-3 cursor-pointer">
+                    <Upload className={`h-5 w-5 ${isDragging === tag ? config.textColor : 'text-gray-400'}`} />
+                    <div className="text-center">
+                      <p className={`text-sm font-medium ${isDragging === tag ? config.textColor : 'text-gray-600'}`}>
+                        {isDragging === tag ? 'Drop photo here' : 'Drag & drop photo here or click to browse'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Photos Grid */}
+              {tagPhotos.length === 0 ? (
+                <div className={`${config.bgLight} rounded-xl p-8 text-center`}>
+                  <p className="text-sm text-gray-500">No {config.label.toLowerCase()} photos yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {tagPhotos.map((photo) => (
                     <div
                       key={photo.id}
-                      className="relative group cursor-pointer overflow-hidden rounded-lg border border-gray-200 group-hover:border-blue-500 transition-colors h-40 bg-gray-100"
+                      className="group/photo relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white shadow-sm hover:shadow-lg transition-all"
                       onClick={() => setSelectedPhoto(photo)}
                     >
                       <Image
                         src={photo.url}
-                        alt={label}
+                        alt={config.label}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                        priority={false}
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                        unoptimized
                       />
-                      <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center z-10">
-                        <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {/* Overlay on Hover */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/photo:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+                          <p className="text-xs text-white font-medium truncate">
+                            {new Date(photo.created_at).toLocaleDateString()}
+                          </p>
+                          {hasPermission('inventory.delete') && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (confirm('Delete this photo?')) {
+                                  await handleDeletePhoto(photo.id);
+                                }
+                              }}
+                              className="p-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-white transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Upload Photo</h3>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Photo Type
-                </label>
-                <select
-                  value={selectedTag}
-                  onChange={(e) => setSelectedTag(e.target.value as typeof selectedTag)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isUploading}
-                >
-                  <option value="pallet">Pallet Photo</option>
-                  <option value="label">Label Photo</option>
-                  <option value="racking">Location/Racking Photo</option>
-                  <option value="onsite">Onsite Photo</option>
-                </select>
-              </div>
-              <ImageUpload
-                label="Upload Photo"
-                onChange={handlePhotoUpload}
-                folder="inventory"
-              />
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {/* Photo Viewer Modal */}
       {selectedPhoto && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPhoto(null)}>
-          <div className="relative max-w-4xl w-full max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 z-10 bg-gray-800 bg-opacity-50 rounded-full p-2"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <div className="relative w-full h-[70vh] rounded-lg overflow-hidden bg-white">
+        <div
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          <div className="relative w-full max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full h-[85vh] rounded-xl overflow-hidden shadow-2xl">
               <Image
                 src={selectedPhoto.url}
-                alt={TAG_LABELS[selectedPhoto.tag].label}
+                alt={TAG_CONFIG[selectedPhoto.tag].label}
                 fill
                 className="object-contain"
-                sizes="(max-width: 1024px) 100vw, 1024px"
+                sizes="1400px"
                 priority
+                unoptimized
               />
             </div>
-            <div className="absolute bottom-4 left-4 right-4 bg-white bg-opacity-90 rounded-lg p-4 flex items-center justify-between">
-              <div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${TAG_LABELS[selectedPhoto.tag].color}`}>
-                  {TAG_LABELS[selectedPhoto.tag].label}
-                </span>
-                <p className="text-sm text-gray-500 mt-1">
-                  {new Date(selectedPhoto.created_at).toLocaleString()}
-                </p>
+            
+            {/* Photo Info Bar */}
+            <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${TAG_CONFIG[selectedPhoto.tag].gradient} rounded-lg flex items-center justify-center`}>
+                    <span className="text-xl">{TAG_CONFIG[selectedPhoto.tag].icon}</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{TAG_CONFIG[selectedPhoto.tag].label}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(selectedPhoto.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                {hasPermission('inventory.delete') && (
+                  <button
+                    onClick={async () => {
+                      if (confirm('Delete this photo?')) {
+                        await handleDeletePhoto(selectedPhoto.id);
+                        setSelectedPhoto(null);
+                      }
+                    }}
+                    className="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-medium transition-colors shadow-md"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </button>
+                )}
               </div>
-              {hasPermission('inventory.delete') && (
-                <button
-                  onClick={() => handleDeletePhoto(selectedPhoto.id)}
-                  className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -272,4 +410,3 @@ export default function PhotoGallery({
     </div>
   );
 }
-

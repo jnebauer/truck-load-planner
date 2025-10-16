@@ -1,0 +1,4 @@
+client_name,client_email,label,description,length_mm,width_mm,height_mm,volume_m3,weight_kg,stackability,top_load_rating_kg,orientation_locked,fragile,keep_upright,priority,pallet_no,inventory_date,location_site,location_aisle,location_bay,location_level,location_notes,quantity,status,pallet_photo_url,label_photo_url,racking_photo_url,onsite_photo_url
+A,invalid-email,,,abc,-50,750,,-100,wrong_value,text,yes,maybe,1,-100,,2024-01-15,,A,01,1,Old past date test,zero,pending,,,
+X,no-domain@email,Short,Test item,0,0,0,0,0,invalid_stack,0,wrong,invalid,0,-50,PALLET-001,2025-02-30,Wrong address,B,02,2,All zeros + invalid date,0,wrong_status,,,
+Valid Corp,perfect@example.com,Office Chair,Ergonomic office chair,800,800,900,0.576,30,stackable,250,TRUE,FALSE,TRUE,5,PALLET-VALID,2025-12-31,"Derrimut Dr, Derrimut VIC 3026, Australia",C,03,3,This should pass all validation,15,in_storage,,,
