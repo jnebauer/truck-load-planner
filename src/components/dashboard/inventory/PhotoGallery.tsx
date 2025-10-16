@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { Trash2, X, Upload, Camera } from 'lucide-react';
+import { Trash2, X, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
 
@@ -200,42 +200,6 @@ export default function PhotoGallery({
     return acc;
   }, {} as Record<string, Photo[]>);
 
-  // If no photos at all, show empty state
-  if (photos.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="mx-auto w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
-          <Camera className="h-10 w-10 text-gray-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Photos Yet</h3>
-        <p className="text-sm text-gray-500 mb-6">Start by uploading photos to different categories</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
-          {Object.entries(TAG_CONFIG).map(([tag, config]) => (
-            <button
-              key={tag}
-              onClick={() => fileInputRefs[tag as keyof typeof fileInputRefs].current?.click()}
-              disabled={!hasPermission('inventory.update') || uploadingTag === tag}
-              className={`p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all ${
-                !hasPermission('inventory.update') ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              <span className="text-3xl mb-2 block">{config.icon}</span>
-              <p className="text-sm font-medium text-gray-700">{config.label}</p>
-              <input
-                ref={fileInputRefs[tag as keyof typeof fileInputRefs]}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                onChange={(e) => handleFileSelect(e, tag)}
-                className="hidden"
-                disabled={!hasPermission('inventory.update') || uploadingTag === tag}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Photo Sections */}
@@ -297,11 +261,9 @@ export default function PhotoGallery({
                 </div>
               )}
 
-              {/* Photos Grid */}
+              {/* Photos Grid or Empty Message */}
               {tagPhotos.length === 0 ? (
-                <div className={`${config.bgLight} rounded-xl p-8 text-center`}>
-                  <p className="text-sm text-gray-500">No {config.label.toLowerCase()} photos yet</p>
-                </div>
+                <p className="text-sm text-gray-500 text-center py-4">No {config.label.toLowerCase()} photos yet</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {tagPhotos.map((photo) => (
