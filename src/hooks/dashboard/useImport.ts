@@ -204,11 +204,6 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
 
           setColumnMappings(autoMappings);
           
-          // Debug: Log auto-mapping results
-          console.log('🎯 Auto-mapped columns:', autoMappings);
-          console.log('📄 CSV Headers:', headers);
-          console.log('📊 First data row:', data[0]);
-          
           showToast.success(`${TOAST_MESSAGES.SUCCESS.CSV_PARSED} Loaded ${data.length} rows with ${headers.length} columns`);
           setStep('preview');
         },
@@ -287,12 +282,6 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
       setStep('importing');
       setImportProgress(0);
       
-      // Debug: Check data source
-      console.log('🔍 Import process starting:');
-      console.log('  editedData length:', editedData.length);
-      console.log('  csvData length:', csvData.length);
-      console.log('  Using:', editedData.length > 0 ? 'EDITED' : 'ORIGINAL');
-      
       const dataToImport = editedData.length > 0 ? editedData : csvData;
       const totalRecords = dataToImport.length;
       
@@ -309,39 +298,18 @@ export function useImport(requiredFields: FieldDefinition[], optionalFields: Fie
           return next >= 90 ? 90 : next; // Cap at 90%
         });
       }, progressInterval);
-      
-      // Debug first row
-      if (dataToImport.length > 0) {
-        console.log('🔍 First row to import:', dataToImport[0]);
-        console.log('🔍 Keys in first row:', Object.keys(dataToImport[0]));
-      }
 
       // Map data according to column mappings
-      const mappedData = dataToImport.map((row, rowIndex) => {
+      const mappedData = dataToImport.map((row) => {
         const transformed: Record<string, unknown> = {};
         
         columnMappings.forEach(mapping => {
           // Get value directly from row using CSV column name
           const value = row[mapping.csvColumn];
           transformed[mapping.dbField] = value;
-          
-          // Debug label field for first row
-          if (rowIndex === 0 && mapping.dbField === 'label') {
-            console.log(`🔍 Mapping "label":`);
-            console.log(`  CSV Column: "${mapping.csvColumn}"`);
-            console.log(`  Value from row: "${value}"`);
-            console.log(`  Column exists in row: ${mapping.csvColumn in row}`);
-          }
         });
         
         return transformed;
-      });
-
-      // Debug: Log sample for verification
-      console.log('✅ Mapped data ready for import:', {
-        totalRows: mappedData.length,
-        sampleRow: mappedData[0],
-        mappings: columnMappings.length
       });
 
       // Call import API

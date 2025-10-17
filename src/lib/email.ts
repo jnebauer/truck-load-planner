@@ -42,7 +42,6 @@ const transporter = nodemailer.createTransport(smtpConfig);
 export async function verifyEmailConnection(): Promise<boolean> {
   try {
     await transporter.verify();
-    console.log('✅ SMTP connection verified successfully');
     return true;
   } catch (error) {
     console.error('❌ SMTP connection failed:', error);
@@ -71,8 +70,7 @@ export async function sendPasswordResetEmail(
       text: generatePasswordResetEmailText(fullName, resetUrl),
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent:', info.messageId);
+    await transporter.sendMail(mailOptions);
     
     return { success: true };
   } catch (error) {
@@ -168,8 +166,7 @@ export async function sendUserCreatedEmail(
       text: generateUserCreatedEmailText(fullName, email, password, role, loginUrl),
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ User creation email sent:', info.messageId);
+    await transporter.sendMail(mailOptions);
     
     return { success: true };
   } catch (error) {
@@ -289,8 +286,7 @@ Time: ${new Date().toLocaleString()}
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Test email sent:', info.messageId);
+    await transporter.sendMail(mailOptions);
     
     return { success: true };
   } catch (error) {

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Validate file
     if (!file) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: API_RESPONSE_MESSAGES.ERROR.NO_FILE_PROVIDED },
         { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed' },
+        { error: API_RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE },
         { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size too large. Maximum size is 5MB' },
+        { error: API_RESPONSE_MESSAGES.ERROR.FILE_SIZE_TOO_LARGE },
         { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       console.error('Supabase upload error:', uploadError);
       return NextResponse.json(
         {
-          error: 'Failed to upload image',
+          error: API_RESPONSE_MESSAGES.ERROR.UPLOAD_FAILED,
           message: uploadError.message,
         },
         { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }

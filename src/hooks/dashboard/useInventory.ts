@@ -372,12 +372,6 @@ export function useInventory() {
           quantity: data.quantity || 1,
           status: data.status,
         };
-        
-        console.log('Submitting inventory with coordinates:', {
-          location_site: apiData.location_site,
-          location_latitude: apiData.location_latitude,
-          location_longitude: apiData.location_longitude,
-        });
 
         if (editingInventory) {
           // Update existing inventory

@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { VALIDATION_MESSAGES } from '@/lib/backend/constants';
-import { GooglePlacesAutocomplete, ImageUploadCell } from '@/components/common';
+import { GooglePlacesAutocomplete } from '@/components/common';
+import { ImageUploadCell } from './ImageUploadCell';
 
 interface ParsedRow {
   [key: string]: string | number | null;

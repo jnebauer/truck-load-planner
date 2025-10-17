@@ -341,7 +341,7 @@ export function useClients() {
     try {
       // Password validation for create
       if (!editingClient && (!data.password || data.password.trim() === '')) {
-        showToast.error('Password is required when creating a new client');
+        showToast.error(TOAST_MESSAGES.ERROR.PASSWORD_REQUIRED_FOR_NEW_CLIENT);
         return;
       }
 

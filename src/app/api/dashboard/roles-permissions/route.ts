@@ -187,18 +187,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Add permissions if provided
-    console.log('🔐 Permissions received:', permissions);
-    console.log('🔐 Permissions length:', permissions?.length);
-    
     if (permissions && permissions.length > 0) {
-      console.log('✅ Permissions array is not empty, proceeding to save...');
-      
       const permissionInserts = permissions.map((permission: string) => ({
         role_id: newRole.id,
         permission: permission.trim() // Ensure no extra whitespace
       }));
-
-      console.log('📝 Permission inserts:', permissionInserts);
 
       const { error: permissionError } = await supabase
         .from('role_permissions')
@@ -210,11 +203,7 @@ export async function POST(request: NextRequest) {
           error: API_RESPONSE_MESSAGES.ERROR.INVALID_PERMISSIONS, 
           details: permissionError.message 
         }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
-      } else {
-        console.log('✅ Permissions saved successfully');
       }
-    } else {
-      console.log('⚠️ No permissions provided or empty array');
     }
 
     return NextResponse.json({ 
@@ -237,8 +226,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: Request) {
   try {
     const { id, name, permissions, isActive } = await request.json();
-    
-    console.log('🔄 PUT Request - Updating role:', { id, name, permissions, isActive });
 
     if (!id) {
       return NextResponse.json({ error: API_RESPONSE_MESSAGES.ERROR.MISSING_REQUIRED_FIELDS }, { status: HTTP_STATUS.BAD_REQUEST });

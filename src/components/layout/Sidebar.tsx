@@ -19,27 +19,17 @@ export default function Sidebar({ user }: SidebarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const { signOut, hasPermission } = useAuth();
 
-  // Debug: Check what permissions user has
-  console.log('🔍 Sidebar Debug - User:', user);
-  console.log('🔍 Sidebar Debug - hasPermission("navigation.dashboard"):', hasPermission('navigation.dashboard'));
-  console.log('🔍 Sidebar Debug - hasPermission("navigation.inventory"):', hasPermission('navigation.inventory'));
-
   // Get filtered navigation items based on user permissions
   const navigationItems = getFilteredNavigation(hasPermission);
-  
-  console.log('🔍 Sidebar Debug - Filtered navigation items:', navigationItems.map(item => item.name));
   
   // Force remove Dashboard if user doesn't have navigation.dashboard permission
   const filteredItems = navigationItems.filter(item => {
     if (item.id === 'dashboard') {
       const hasDashboardPermission = hasPermission('navigation.dashboard');
-      console.log('🔍 Dashboard permission check:', hasDashboardPermission);
       return hasDashboardPermission;
     }
     return true;
   });
-  
-  console.log('🔍 Final filtered items:', filteredItems.map(item => item.name));
 
   const isActive = (href: string) => {
     // Exact match only

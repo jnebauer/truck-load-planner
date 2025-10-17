@@ -1,12 +1,24 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Download, CheckCircle, Sparkles, FileText, Zap, AlertCircle } from 'lucide-react';
+import {
+  Upload,
+  FileSpreadsheet,
+  Download,
+  CheckCircle,
+  Sparkles,
+  FileText,
+  Zap,
+  AlertCircle,
+} from 'lucide-react';
 
 interface UploadStepProps {
   onFileSelect: (file: File) => void;
   isUploading: boolean;
 }
 
-export default function UploadStep({ onFileSelect, isUploading }: UploadStepProps) {
+export default function UploadStep({
+  onFileSelect,
+  isUploading,
+}: UploadStepProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
@@ -28,16 +40,19 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      setSelectedFileName(file.name);
-      onFileSelect(file);
-    }
-  }, [onFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        setSelectedFileName(file.name);
+        onFileSelect(file);
+      }
+    },
+    [onFileSelect]
+  );
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -50,7 +65,8 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
           Import Your Inventory
         </h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Upload a CSV file to bulk import inventory items. Our system will automatically map your columns and validate your data.
+          Upload a CSV file to bulk import inventory items. Our system will
+          automatically map your columns and validate your data.
         </p>
       </div>
 
@@ -76,22 +92,27 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
               className="hidden"
               id="csv-file-input"
             />
-            
-            <label
-              htmlFor="csv-file-input"
-              className="cursor-pointer block"
-            >
+
+            <label htmlFor="csv-file-input" className="cursor-pointer block">
               {isUploading ? (
                 <div className="flex flex-col items-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-                      <p className="font-medium text-gray-900 mb-2">Processing your file...</p>
-                      <p className="text-sm text-gray-500">Analyzing data and mapping columns</p>
+                  <p className="font-medium text-gray-900 mb-2">
+                    Processing your file...
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Analyzing data and mapping columns
+                  </p>
                 </div>
               ) : selectedFileName ? (
                 <div className="flex flex-col items-center">
                   <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-                  <p className="font-medium text-gray-900 mb-2">{selectedFileName}</p>
-                  <p className="text-sm text-gray-500 mb-4">File selected successfully</p>
+                  <p className="font-medium text-gray-900 mb-2">
+                    {selectedFileName}
+                  </p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    File selected successfully
+                  </p>
                   <button
                     type="button"
                     className="text-sm font-medium text-blue-600 hover:text-blue-700"
@@ -105,16 +126,16 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
                     <FileSpreadsheet className="h-12 w-12 text-gray-400 mb-4" />
                     <Sparkles className="h-5 w-5 text-blue-500 absolute -top-1 -right-1 animate-pulse" />
                   </div>
-                      <p className="font-semibold text-gray-900 mb-1">
-                        Drop your CSV file here, or click to browse
-                      </p>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Supports CSV files up to 50MB
-                      </p>
-                      <div className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-medium">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Select File
-                      </div>
+                  <p className="font-semibold text-gray-900 mb-1">
+                    Drop your CSV file here, or click to browse
+                  </p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Supports CSV files up to 50MB
+                  </p>
+                  <div className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-medium">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Select File
+                  </div>
                 </div>
               )}
             </label>
@@ -131,7 +152,10 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
                   ⚠️ Please Read Instructions Before Uploading
                 </p>
                 <p className="text-xs text-amber-800">
-                  Scroll down to review the <strong>Required CSV Columns</strong> and <strong>Important Notes</strong> before uploading your file to avoid errors.
+                  Scroll down to review the{' '}
+                  <strong>Required CSV Columns</strong> and{' '}
+                  <strong>Important Notes</strong> before uploading your file to
+                  avoid errors.
                 </p>
               </div>
             </div>
@@ -146,8 +170,12 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
                 <Zap className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">Auto-Mapping</h4>
-                <p className="text-xs text-gray-600">Automatically detects and maps your CSV columns</p>
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                  Auto-Mapping
+                </h4>
+                <p className="text-xs text-gray-600">
+                  Automatically detects and maps your CSV columns
+                </p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -155,8 +183,12 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">Smart Validation</h4>
-                <p className="text-xs text-gray-600">Real-time data validation and error detection</p>
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                  Smart Validation
+                </h4>
+                <p className="text-xs text-gray-600">
+                  Real-time data validation and error detection
+                </p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -164,8 +196,12 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
                 <FileText className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">Edit Preview</h4>
-                <p className="text-xs text-gray-600">Review and edit data before importing</p>
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                  Edit Preview
+                </h4>
+                <p className="text-xs text-gray-600">
+                  Review and edit data before importing
+                </p>
               </div>
             </div>
           </div>
@@ -179,20 +215,22 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
             <FileSpreadsheet className="h-7 w-7 text-white" />
           </div>
           <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  📥 Download Sample CSV Template
-                </h3>
-                <p className="text-sm text-gray-700 mb-4">
-                  <strong>Recommended:</strong> Download our pre-formatted template with sample data. It includes all required columns with proper naming and example values to guide you.
-                </p>
-                <a
-                  href="/sample-import.csv"
-                  download="inventory-import-template.csv"
-                  className="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-sm font-medium"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Template CSV
-                </a>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              📥 Download Sample CSV Template
+            </h3>
+            <p className="text-sm text-gray-700 mb-4">
+              <strong>Recommended:</strong> Download our pre-formatted template
+              with sample data. It includes all required columns with proper
+              naming and example values to guide you.
+            </p>
+            <a
+              href="/sample-import.csv"
+              download="inventory-import-template.csv"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-sm font-medium"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Template CSV
+            </a>
           </div>
         </div>
       </div>
@@ -204,17 +242,22 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
             <AlertCircle className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-                <h2 className="text-lg font-bold text-gray-900 mb-2">📋 Important Instructions - Read Before Upload</h2>
-                <p className="text-sm text-gray-700">
-                  Please review these requirements carefully to ensure a successful import. All data will be validated before importing.
-                </p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              📋 Important Instructions - Read Before Upload
+            </h2>
+            <p className="text-sm text-gray-700">
+              Please review these requirements carefully to ensure a successful
+              import. All data will be validated before importing.
+            </p>
           </div>
         </div>
 
         {/* Required Fields */}
         <div className="bg-white rounded-xl p-5 mb-4 border border-amber-200">
           <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">REQUIRED</span>
+            <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
+              REQUIRED
+            </span>
             Required CSV Columns (Must Have These)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -256,7 +299,9 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <span className="font-medium text-gray-900">Top Load Rating (kg)</span>
+              <span className="font-medium text-gray-900">
+                Top Load Rating (kg)
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
@@ -284,13 +329,18 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
         {/* Optional Fields */}
         <div className="bg-white rounded-xl p-5 mb-4 border border-amber-200">
           <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">OPTIONAL</span>
+            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
+              OPTIONAL
+            </span>
             Optional Columns (Recommended)
           </h3>
           <div className="text-sm text-gray-700 space-y-1.5">
             <p>• Description, Aisle, Bay, Level, Location Notes</p>
             <p>• Orientation Locked, Fragile, Keep Upright, Loading Priority</p>
-            <p>• Pallet Photo URL, Label Photo URL, Racking Photo URL, Onsite Photo URL</p>
+            <p>
+              • Pallet Photo URL, Label Photo URL, Racking Photo URL, Onsite
+              Photo URL
+            </p>
           </div>
         </div>
 
@@ -300,29 +350,44 @@ export default function UploadStep({ onFileSelect, isUploading }: UploadStepProp
           <ul className="space-y-2 text-sm text-amber-900">
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">1.</span>
-              <span><strong>Use Sample CSV Template:</strong> Please download and use our sample CSV template. If you use your own CSV format, fields may mismatch and import will not work properly. The template has exact column names required.</span>
+              <span>
+                <strong>Use Sample CSV Template:</strong> Please download and
+                use our sample CSV template. If you use your own CSV format,
+                fields may mismatch and import will not work properly. The
+                template has exact column names required.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">2.</span>
-              <span><strong>Client Email:</strong> If email exists, we&apos;ll use that client. Otherwise, we&apos;ll create a new one. Same email = same client (no duplicates).</span>
+              <span>
+                <strong>Client Email:</strong> If email exists, we&apos;ll use
+                that client. Otherwise, we&apos;ll create a new one. Same email
+                = same client (no duplicates).
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">3.</span>
-              <span><strong>Validation:</strong> All data validated in Step 3 (Preview). You can edit any cell before importing.</span>
+              <span>
+                <strong>Validation:</strong> All data validated in Step 3
+                (Preview). You can edit any cell before importing.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">4.</span>
-              <span><strong>Photo URLs:</strong> Provide public image URLs, and they&apos;ll be attached to items.</span>
+              <span>
+                <strong>Photo URLs:</strong> Provide public image URLs, and
+                they&apos;ll be attached to items.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold mt-0.5">5.</span>
-              <span><strong>File Format:</strong> CSV only. Max size: 50MB.</span>
+              <span>
+                <strong>File Format:</strong> CSV only. Max size: 50MB.
+              </span>
             </li>
           </ul>
         </div>
       </div>
-
     </div>
   );
 }
-

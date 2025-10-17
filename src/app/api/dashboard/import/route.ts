@@ -130,16 +130,6 @@ export async function POST(request: NextRequest) {
       const rowNumber = i + 1;
 
       try {
-        // Debug: Log first row data
-        if (i === 0) {
-          console.log('🔍 Backend received first row:', row);
-          console.log('🔍 Field types:', {
-            label: typeof row.label,
-            length_mm: typeof row.length_mm,
-            client_name: typeof row.client_name,
-          });
-        }
-
         // Validate and convert required fields
         const label = String(row.label || '').trim();
         const length_mm = Number(row.length_mm);
@@ -299,14 +289,10 @@ export async function POST(request: NextRequest) {
         let locationLongitude = row.location_longitude || null;
         
         if (!locationLatitude || !locationLongitude) {
-          console.log(`Geocoding address for row ${rowNumber}: ${location_site}`);
           const coords = await geocodeAddress(location_site);
           if (coords) {
             locationLatitude = coords.lat;
             locationLongitude = coords.lng;
-            console.log(`✅ Geocoded successfully: ${coords.lat}, ${coords.lng}`);
-          } else {
-            console.warn(`⚠️ Failed to geocode address: ${location_site}`);
           }
         }
         
@@ -347,9 +333,8 @@ export async function POST(request: NextRequest) {
         for (const photoMapping of photoMappings) {
           if (photoMapping.url && photoMapping.url.trim()) {
             try {
-              console.log(`📸 Saving ${photoMapping.tag} photo for row ${rowNumber}:`, photoMapping.url.trim());
               // Insert photo record with URL
-              const { error: mediaError } = await supabase.from('media').insert({
+              await supabase.from('media').insert({
                 inventory_unit_id: newInventoryUnit.id,
                 item_id: newItem.id,
                 url: photoMapping.url.trim(),
@@ -357,15 +342,8 @@ export async function POST(request: NextRequest) {
                 content_type: 'image/jpeg', // Default, can be updated later
                 created_by: user.id,
               });
-              
-              if (mediaError) {
-                console.error(`❌ Failed to add ${photoMapping.tag} photo for row ${rowNumber}:`, mediaError);
-              } else {
-                console.log(`✅ Successfully saved ${photoMapping.tag} photo for row ${rowNumber}`);
-              }
-            } catch (photoError) {
-              // Log photo error but don't fail the entire import
-              console.error(`❌ Exception adding ${photoMapping.tag} photo for row ${rowNumber}:`, photoError);
+            } catch {
+              // Photo error - don't fail the entire import
             }
           }
         }

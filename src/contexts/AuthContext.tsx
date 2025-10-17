@@ -111,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔐 Fetched permissions from database:', data.permissions);
         return data.permissions || [];
       }
     } catch (error) {
@@ -131,7 +130,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📱 Fetched accessible apps:', data.accessibleApps);
         return data.accessibleApps || [];
       }
     } catch (error) {
@@ -170,7 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTokens(data.tokens);
         
         // Save to localStorage only if rememberMe is true
-        console.log('rememberMe:', rememberMe);
         if (rememberMe) {
           localStorage.setItem('trucker_user', JSON.stringify(userWithPermissions));
           localStorage.setItem('trucker_tokens', JSON.stringify(data.tokens));
@@ -278,27 +275,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Admin role gets ALL permissions - no restrictions
     if (user.role === 'admin') {
-      console.log('🔍 Admin role - allowing ALL permissions:', permission);
       return true;
     }
     
     // If user has database permissions, use them
     if (user.permissions && user.permissions.length > 0) {
-      console.log('🔍 Using database permissions:', user.permissions);
-      console.log('🔍 Checking permission:', permission);
       const hasPermission = user.permissions.includes(permission);
-      console.log('🔍 Result:', hasPermission);
       return hasPermission;
     }
     
     // For other roles, check if it's navigation.dashboard and restrict it
     if (permission === 'navigation.dashboard') {
-      console.log('🔍 Dashboard permission requested for non-admin role - returning false');
       return false; // Hide Dashboard tab for non-admin roles
     }
     
     // Fallback to static permissions for other roles and permissions
-    console.log('🔍 Using static permissions for role:', user.role);
     return hasPermission(user.role, permission);
   };
 

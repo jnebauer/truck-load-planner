@@ -76,15 +76,6 @@ export async function POST(request: NextRequest) {
     if (!emailResult.success) {
       console.error('Failed to send password reset email:', emailResult.error);
       // Still return success to user for security (don't reveal if email failed)
-    } else {
-      console.log('✅ Password reset email sent successfully to:', user.email);
-    }
-
-    // In development, also log the reset token for testing
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔑 Development - Reset token:', resetToken);
-      console.log('🔗 Development - Reset URL:', resetUrl);
-      console.log('⏰ Development - Expires at:', resetTokenExpiry);
     }
 
     return NextResponse.json({

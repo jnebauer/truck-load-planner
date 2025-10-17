@@ -5,6 +5,7 @@ import { Upload, X, Image as ImageIcon, Loader2, Eye, Pencil } from 'lucide-reac
 import { showToast } from '@/lib/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
 interface ImageUploadCellProps {
   value?: string;
@@ -36,14 +37,14 @@ export const ImageUploadCell: React.FC<ImageUploadCellProps> = ({
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      showToast.error('Invalid file type. Only JPEG, PNG, GIF, and WebP allowed');
+      showToast.error(TOAST_MESSAGES.ERROR.INVALID_FILE_TYPE);
       return;
     }
 
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      showToast.error('File size too large. Maximum 5MB');
+      showToast.error(TOAST_MESSAGES.ERROR.FILE_SIZE_TOO_LARGE);
       return;
     }
 
@@ -62,14 +63,14 @@ export const ImageUploadCell: React.FC<ImageUploadCellProps> = ({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Upload failed');
+        throw new Error(result.error || TOAST_MESSAGES.ERROR.UPLOAD_FAILED);
       }
 
       onChange(result.data.url);
-      // showToast.success('Image uploaded');
+      // showToast.success(TOAST_MESSAGES.SUCCESS.IMAGE_UPLOADED);
     } catch (err) {
       console.error('Upload error:', err);
-      showToast.error(err instanceof Error ? err.message : 'Upload failed');
+      showToast.error(err instanceof Error ? err.message : TOAST_MESSAGES.ERROR.UPLOAD_FAILED);
     } finally {
       setUploading(false);
     }

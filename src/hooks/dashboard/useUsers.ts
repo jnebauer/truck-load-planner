@@ -174,7 +174,7 @@ export function useUsers() {
       try {
         // Custom validation: Password is required for create, optional for update
         if (!editingUser && (!data.password || data.password.trim() === '')) {
-          showToast.error('Password is required when creating a new user');
+          showToast.error(TOAST_MESSAGES.ERROR.PASSWORD_REQUIRED_FOR_NEW_USER);
           return;
         }
         

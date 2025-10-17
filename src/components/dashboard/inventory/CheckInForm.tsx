@@ -423,7 +423,6 @@ export default function CheckInForm({
               value={field.value}
               onChange={(data) => {
                 // Save address and coordinates (same pattern as Client form)
-                console.log('Google Places Data:', data);
                 if (!data.address || data.address.trim() === '') {
                   field.onChange('');
                   setValue('locationLatitude', null);
@@ -433,10 +432,6 @@ export default function CheckInForm({
                   setValue('locationLatitude', data.lat || null);
                   setValue('locationLongitude', data.lng || null);
                 }
-                console.log('Set coordinates:', { 
-                  lat: data.lat || null, 
-                  lng: data.lng || null 
-                });
               }}
               placeholder="Enter warehouse location (e.g., Derrimut, Melbourne)"
               error={errors.locationSite?.message}

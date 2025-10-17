@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Trash2, X, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/lib/toast';
+import { TOAST_MESSAGES } from '@/lib/backend/constants';
 
 interface Photo {
   id: string;
@@ -76,13 +77,13 @@ export default function PhotoGallery({
     async (file: File, tag: string) => {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (!validTypes.includes(file.type)) {
-        showToast.error('Invalid file type. Only JPEG, PNG, GIF, and WebP allowed');
+        showToast.error(TOAST_MESSAGES.ERROR.INVALID_FILE_TYPE);
         return;
       }
 
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        showToast.error('File size too large. Maximum 5MB');
+        showToast.error(TOAST_MESSAGES.ERROR.FILE_SIZE_TOO_LARGE);
         return;
       }
 
@@ -99,7 +100,7 @@ export default function PhotoGallery({
 
         if (!uploadResponse.ok) {
           const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Upload failed');
+          throw new Error(errorData.error || TOAST_MESSAGES.ERROR.UPLOAD_FAILED);
         }
 
         const { data: uploadData } = await uploadResponse.json();
@@ -121,11 +122,11 @@ export default function PhotoGallery({
           onPhotosUpdate();
         } else {
           const data = await mediaResponse.json();
-          showToast.error(data.error || 'Failed to save photo');
+          showToast.error(data.error || TOAST_MESSAGES.ERROR.SAVE_FAILED);
         }
       } catch (error) {
         console.error('Error uploading photo:', error);
-        showToast.error(error instanceof Error ? error.message : 'Failed to upload photo');
+        showToast.error(error instanceof Error ? error.message : TOAST_MESSAGES.ERROR.UPLOAD_FAILED);
       } finally {
         setUploadingTag(null);
       }
@@ -144,15 +145,15 @@ export default function PhotoGallery({
         );
 
         if (response.ok) {
-          showToast.success('Photo deleted!');
+          showToast.success(TOAST_MESSAGES.SUCCESS.PHOTO_DELETED + '!');
           onPhotosUpdate();
         } else {
           const data = await response.json();
-          showToast.error(data.error || 'Failed to delete photo');
+          showToast.error(data.error || TOAST_MESSAGES.ERROR.PHOTO_DELETE_FAILED);
         }
       } catch (error) {
         console.error('Error deleting photo:', error);
-        showToast.error('Failed to delete photo');
+        showToast.error(TOAST_MESSAGES.ERROR.PHOTO_DELETE_FAILED);
       }
     },
     [inventoryUnitId, authenticatedFetch, onPhotosUpdate]

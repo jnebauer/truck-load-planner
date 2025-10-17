@@ -354,9 +354,6 @@ export async function POST(request: NextRequest) {
       status,
     } = body;
 
-    // Debug: Log location coordinates
-    console.log('Received location data:', { location_site, location_latitude, location_longitude });
-
     if (
       !client_id ||
       !label ||
@@ -449,11 +446,6 @@ export async function POST(request: NextRequest) {
       created_by: user.id,
       updated_by: user.id,
     };
-    
-    console.log('Inserting inventory unit with coordinates:', { 
-      location_latitude: inventoryUnitData.location_latitude, 
-      location_longitude: inventoryUnitData.location_longitude 
-    });
 
     const { data: inventoryUnit, error: unitError } = await supabase
       .from('inventory_units')
